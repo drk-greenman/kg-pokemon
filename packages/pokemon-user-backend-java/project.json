@@ -1,0 +1,30 @@
+{
+  "name": "pokemon-user-backend-java",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/pokemon-user-backend-java/src",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "mvn package -q -DskipTests",
+        "cwd": "packages/pokemon-user-backend-java"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "mvn test",
+        "cwd": "packages/pokemon-user-backend-java"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "mvn spring-boot:run",
+        "cwd": "packages/pokemon-user-backend-java"
+      }
+    }
+  }
+}
