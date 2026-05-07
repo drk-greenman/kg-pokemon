@@ -107,7 +107,7 @@ com.pokemon.userbackend/
 
 **Repository** — Spring Data JPA interfaces extending `JpaRepository`. No custom queries needed beyond what Spring Data infers from method names.
 
-**Entity → DTO mapping** — manual mapper classes (no MapStruct). Each mapper is a Spring `@Component` with a single `toDto` method. DTOs are Java records with hand-written static inner `Builder` classes.
+**Entity → DTO mapping** — manual mapper classes (no MapStruct). Each mapper is a Spring `@Component` with a single `toDto` method. DTOs are Java records using their canonical constructors directly — no builders.
 
 ---
 
