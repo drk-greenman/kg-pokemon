@@ -240,3 +240,80 @@ Wrote and committed spec to `docs/superpowers/specs/2026-05-07-spring-boot-scaff
 **User:** 3 (keep branch as-is)
 
 **Claude:** Branch `feat/spring-boot-scaffold` kept. Summary of branch contents delivered. Session transcript appended.
+
+---
+
+## Session — 2026-05-07
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** /code-review:code-review
+
+**Claude:** Running code review skill on the current branch's open PR.
+
+Created task list:
+1. Check PR eligibility
+2. Find relevant CLAUDE.md files
+3. Summarize PR changes
+4. Run 5 parallel code review agents
+5. Score issues for confidence
+6. Post code review comment on PR
+
+**Step 1 — PR Eligibility (Haiku agent):**
+
+Tool call: `gh pr list --head feat/spring-boot-scaffold --json number,state,isDraft,title,author`  
+Result: PR #1 "feat: add Spring Boot (Java 25 / Maven) backend scaffold" by drk-greenman — OPEN, not draft, not automated, no existing reviews. Proceed with review.
+
+**Step 2 & 3 — CLAUDE.md files and PR summary (parallel Haiku agents):**
+
+Tool call: `gh pr diff 1 --name-only`  
+CLAUDE.md files: `/Users/kgreenman/git/kg-pokemon/CLAUDE.md` (root only)
+
+PR summary: Replaces NestJS backend with Spring Boot 3.5.0 / Java 25 / Maven backend. HEAD SHA: `89df8f007baebad1a89f62d4c2dff565fb4480af`. Files changed: `.gitignore`, `LLM_TRANSCRIPT.md`, root `Tiltfile`, `packages/pokemon-user-backend-java/pom.xml`, `PokemonUserBackendApplication.java`, `application.properties`, `PokemonUserBackendApplicationTests.java`, `Dockerfile`, `k8s/local/deployment.yaml`, `packages/pokemon-user-backend-java/Tiltfile`, `project.json`.
+
+**Step 4 — 5 parallel Sonnet code review agents:**
+
+Agent 1 (CLAUDE.md compliance) found:
+- Issue A: No `/api` prefix in Spring Boot — CLAUDE.md says "backend `localhost:3000/api`" and "Backend serves under the `/api` global prefix"
+- Issue B: Migration automation removed from root Tiltfile, no replacement
+- Issue D: CLAUDE.md not updated to reflect new Java backend architecture
+- Issue E: LLM Transcript summarizes tool calls instead of including full output
+
+Agent 2 (bug scan) found:
+- Issue C: `live_update` sync path `'./packages/pokemon-user-backend-java/src'` resolves to non-existent path from Tiltfile directory; should be `'./src'`
+
+Agent 3 (git history) found:
+- Issues B and C (same as above), plus Issue F: devtools live-reload mechanism via `mvn compile` + `mvn spring-boot:run` is an unconventional pattern
+
+Agent 4 (previous PRs): No relevant previous PRs found
+
+Agent 5 (code comments) found:
+- Issues C and A (same as above), plus Issue G: `pom.xml` not synced in live_update so new deps won't resolve in container
+
+**Step 5 — Scoring (parallel Haiku agents):**
+
+- Issue A (missing /api prefix): Score **85** — CLAUDE.md explicitly calls this out; application.properties confirmed missing `server.servlet.context-path`
+- Issue B (migration removed): Score **50** — Java backend has no DB entities yet, so not immediately impactful
+- Issue C (sync path wrong): Score **90** — verified `./packages/pokemon-user-backend-java/packages/` doesn't exist; `./src` resolves correctly
+- Issue D (CLAUDE.md not updated): Score **75** — real issue but could be deferred to follow-up
+- Issue F (devtools mechanism): Score **35** — likely works in practice
+- Issue G (pom.xml not synced): Score **15** — correct design; full rebuild expected for dep changes
+
+**Step 6 — Filter (score ≥ 80):**  
+Issues A (85) and C (90) proceed.
+
+**Step 7 — Re-check eligibility:** PR #1 still open, not draft, no reviews added. Proceed.
+
+**Step 8 — Posted review comment:**
+
+Tool call: `gh pr comment 1 --body "..."`  
+Result: https://github.com/drk-greenman/kg-pokemon/pull/1#issuecomment-4400427009
+
+Review content:
+> ### Code review
+> Found 2 issues:
+> 1. Spring Boot backend serves at `/` instead of `/api`, breaking the documented API contract. `application.properties` sets only `server.port=3000` with no `server.servlet.context-path=/api`.
+> 2. `live_update` sync path `./packages/pokemon-user-backend-java/src` resolves to a non-existent directory from the Tiltfile's location; should be `./src`.

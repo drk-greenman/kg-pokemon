@@ -3,7 +3,7 @@ docker_build(
     '../../',
     dockerfile='../../packages/pokemon-user-backend-java/Dockerfile',
     live_update=[
-        sync('./packages/pokemon-user-backend-java/src', '/app/src'),
+        sync('./src', '/app/src'),
         run('mvn compile -q -f /app/pom.xml'),
     ]
 )
