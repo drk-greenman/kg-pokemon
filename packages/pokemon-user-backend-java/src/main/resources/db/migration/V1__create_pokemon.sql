@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS pokemon (
+    id   INTEGER     PRIMARY KEY,
+    name VARCHAR(50) NOT NULL
+);
