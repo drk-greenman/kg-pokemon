@@ -2,14 +2,21 @@ package com.pokemon.userbackend.service;
 
 import com.pokemon.userbackend.dto.CreateProfileRequest;
 import com.pokemon.userbackend.dto.ProfileDto;
+import com.pokemon.userbackend.entity.Pokemon;
 import com.pokemon.userbackend.entity.Profile;
+import com.pokemon.userbackend.entity.ProfilePokemon;
+import com.pokemon.userbackend.exception.ResourceNotFoundException;
+import com.pokemon.userbackend.exception.TeamSizeExceededException;
 import com.pokemon.userbackend.mapper.ProfileMapper;
 import com.pokemon.userbackend.repository.PokemonRepository;
 import com.pokemon.userbackend.repository.ProfilePokemonRepository;
 import com.pokemon.userbackend.repository.ProfileRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ProfileService {
@@ -40,5 +47,49 @@ public class ProfileService {
         profile.setName(request.name());
         var saved = profileRepository.save(profile);
         return profileMapper.toDto(saved);
+    }
+
+    public ProfileDto getById(Integer id) {
+        Profile profile = profileRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found: " + id));
+        List<ProfilePokemon> team = profilePokemonRepository.findByProfile(profile);
+        return profileMapper.toDto(profile, team);
+    }
+
+    @Transactional
+    public ProfileDto updateTeam(Integer profileId, List<Integer> pokemonIds) {
+        if (pokemonIds.size() > 6) {
+            throw new TeamSizeExceededException("Team cannot have more than 6 Pokémon");
+        }
+
+        Profile profile = profileRepository.findById(profileId)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found: " + profileId));
+
+        List<Integer> uniqueIds = pokemonIds.stream().distinct().toList();
+        List<Pokemon> found = pokemonRepository.findAllById(uniqueIds);
+        if (found.size() != uniqueIds.size()) {
+            List<Integer> foundIds = found.stream().map(Pokemon::getId).toList();
+            List<Integer> missing = uniqueIds.stream().filter(id -> !foundIds.contains(id)).toList();
+            throw new ResourceNotFoundException("Pokémon IDs not found: " + missing);
+        }
+
+        Map<Integer, Pokemon> pokemonById = found.stream()
+                .collect(Collectors.toMap(Pokemon::getId, p -> p));
+
+        profilePokemonRepository.deleteByProfile(profile);
+
+        List<ProfilePokemon> team = pokemonIds.stream()
+                .map(id -> {
+                    var pp = new ProfilePokemon();
+                    pp.setProfile(profile);
+                    pp.setPokemon(pokemonById.get(id));
+                    return pp;
+                })
+                .toList();
+        List<ProfilePokemon> savedTeam = profilePokemonRepository.saveAll(team);
+
+        profileRepository.save(profile);
+
+        return profileMapper.toDto(profile, savedTeam);
     }
 }

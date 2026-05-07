@@ -66,4 +66,80 @@ class ProfileServiceTest {
         assertThat(result.name()).isEqualTo("ash");
         assertThat(result.pokemon()).isEmpty();
     }
+
+    @Test
+    void getById_returnsProfileWithTeam() {
+        var ash = new Profile();
+        ash.setId(1);
+        ash.setName("ash");
+        when(profileRepository.findById(1)).thenReturn(java.util.Optional.of(ash));
+        when(profilePokemonRepository.findByProfile(ash)).thenReturn(List.of());
+
+        var result = profileService.getById(1);
+
+        assertThat(result.id()).isEqualTo(1);
+        assertThat(result.name()).isEqualTo("ash");
+        assertThat(result.pokemon()).isEmpty();
+    }
+
+    @Test
+    void getById_throwsWhenNotFound() {
+        when(profileRepository.findById(99)).thenReturn(java.util.Optional.empty());
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> profileService.getById(99))
+                .isInstanceOf(com.pokemon.userbackend.exception.ResourceNotFoundException.class)
+                .hasMessageContaining("99");
+    }
+
+    @Test
+    void updateTeam_throwsWhenMoreThanSixPokemon() {
+        var ids = List.of(1, 2, 3, 4, 5, 6, 7);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> profileService.updateTeam(1, ids))
+                .isInstanceOf(com.pokemon.userbackend.exception.TeamSizeExceededException.class);
+    }
+
+    @Test
+    void updateTeam_throwsWhenProfileNotFound() {
+        when(profileRepository.findById(99)).thenReturn(java.util.Optional.empty());
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> profileService.updateTeam(99, List.of(1)))
+                .isInstanceOf(com.pokemon.userbackend.exception.ResourceNotFoundException.class);
+    }
+
+    @Test
+    void updateTeam_throwsWhenPokemonIdNotFound() {
+        var ash = new Profile();
+        ash.setId(1);
+        ash.setName("ash");
+        when(profileRepository.findById(1)).thenReturn(java.util.Optional.of(ash));
+        when(pokemonRepository.findAllById(List.of(999))).thenReturn(List.of());
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> profileService.updateTeam(1, List.of(999)))
+                .isInstanceOf(com.pokemon.userbackend.exception.ResourceNotFoundException.class)
+                .hasMessageContaining("999");
+    }
+
+    @Test
+    void updateTeam_replacesTeamAndReturnsDto() {
+        var ash = new Profile();
+        ash.setId(1);
+        ash.setName("ash");
+        var bulbasaur = new com.pokemon.userbackend.entity.Pokemon();
+        bulbasaur.setId(1);
+        bulbasaur.setName("bulbasaur");
+
+        when(profileRepository.findById(1)).thenReturn(java.util.Optional.of(ash));
+        when(pokemonRepository.findAllById(List.of(1))).thenReturn(List.of(bulbasaur));
+        when(profilePokemonRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        var result = profileService.updateTeam(1, List.of(1));
+
+        assertThat(result.id()).isEqualTo(1);
+        assertThat(result.pokemon()).hasSize(1);
+        assertThat(result.pokemon().get(0).id()).isEqualTo(1);
+        assertThat(result.pokemon().get(0).name()).isEqualTo("bulbasaur");
+
+        org.mockito.Mockito.verify(profilePokemonRepository).deleteByProfile(ash);
+    }
 }
