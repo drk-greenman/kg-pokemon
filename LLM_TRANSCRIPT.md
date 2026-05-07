@@ -700,3 +700,497 @@ _Tool call: Bash — `git show 784ef76`_
 Output: Changed `"DTOs are Java records with hand-written static inner \`Builder\` classes."` → `"DTOs are Java records using their canonical constructors directly — no builders."`
 
 Identified the missing session as the one that created the Java backend design spec (commits at 15:28 and 15:33, after the code review session). Reconstructed from git diffs and appended both the missing session and the current session to `LLM_TRANSCRIPT.md`.
+
+---
+
+## Session — 2026-05-07
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** You are implementing Task 1 of a Java Spring Boot REST API for a Pokemon Team Builder app. Work in the repo at `/Users/kgreenman/git/kg-pokemon` on branch `feat/java-backend-api`.
+
+[Full task description: Maven Dependencies + Application Config — update pom.xml with JPA/Flyway/PostgreSQL/H2 deps, replace main application.properties, create test application.properties, run contextLoads test, commit.]
+
+**Claude:** Read `pom.xml` and `src/main/resources/application.properties` to confirm current state. Checked that the working branch is `feat/java-backend-api`. Made three changes:
+
+1. Updated `packages/pokemon-user-backend-java/pom.xml`: replaced the `<dependencies>` block to add `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, `flyway-core`, `flyway-database-postgresql`, `postgresql` (runtime), and `h2` (test).
+
+2. Replaced `packages/pokemon-user-backend-java/src/main/resources/application.properties` with full config including `server.servlet.context-path=/api`, PostgreSQL datasource with environment-variable defaults, `ddl-auto=validate`, and Flyway enabled.
+
+3. Created `packages/pokemon-user-backend-java/src/test/resources/application.properties` with H2 in-memory config using `MODE=PostgreSQL;DATABASE_TO_UPPER=false`, H2Dialect, `ddl-auto=none`, and Flyway enabled.
+
+_Tool call: Bash — `mvn test -f packages/pokemon-user-backend-java/pom.xml`_
+
+Output: Maven downloaded new dependencies, compiled successfully, and ran `contextLoads` test. Result: `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0` — BUILD SUCCESS. Flyway ran against H2 with no migrations and succeeded (nothing to migrate).
+
+_Tool call: Bash — git add + git commit_
+
+Output: Committed as `feat: add JPA, Flyway, PostgreSQL, and H2 test dependencies` (commit `cf4862a`). 3 files changed, 41 insertions.
+
+STATUS: DONE
+
+---
+
+## Session — 2026-05-07
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** You are a spec compliance reviewer. Review the git commit(s) for Task 1 of the Java Pokemon Team Builder backend implementation.
+
+## What Task 1 required
+
+The task was to update `packages/pokemon-user-backend-java/` with:
+
+1. **pom.xml** — replace `<dependencies>` block with: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, `spring-boot-devtools` (runtime/optional), `flyway-core`, `flyway-database-postgresql`, `postgresql` (runtime), `spring-boot-starter-test` (test), `h2` (test)
+2. **src/main/resources/application.properties** — full replacement with: `server.port=3000`, `server.servlet.context-path=/api`, devtools poll/quiet intervals, PostgreSQL datasource URL with env-var defaults `${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:pokemon}`, username/password env-var defaults, `spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect`, `spring.jpa.hibernate.ddl-auto=validate`, `spring.flyway.enabled=true`
+3. **src/test/resources/application.properties** — new file with: H2 in-memory URL `jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false`, H2 driver, sa/empty credentials, H2Dialect, `ddl-auto=none`, `spring.flyway.enabled=true`
+
+## Your job
+
+1. Check the recent commits on branch `feat/java-backend-api` in `/Users/kgreenman/git/kg-pokemon`
+2. Read the actual files to verify they match the spec exactly
+3. Report: ✅ SPEC COMPLIANT or ❌ ISSUES FOUND with a specific list of what's missing, wrong, or extra
+
+Be precise — "close enough" is not compliant. If a property is missing or a dependency is absent, call it out.
+
+**Claude:**
+
+_Tool call: Bash — `git log feat/java-backend-api --oneline -10`_
+
+Output:
+```
+cf4862a feat: add JPA, Flyway, PostgreSQL, and H2 test dependencies
+896a4de docs: add Java backend API implementation plan and append session transcripts
+...
+```
+
+_Tool call: Bash — `git show cf4862a --stat`_
+
+Output: 3 files changed, 41 insertions — pom.xml, src/main/resources/application.properties, src/test/resources/application.properties
+
+_Tool call: Read — pom.xml, src/main/resources/application.properties, src/test/resources/application.properties (all three in parallel)_
+
+Output: All three files read successfully.
+
+## ✅ SPEC COMPLIANT
+
+All three files match the spec exactly.
+
+### pom.xml — `<dependencies>` block
+
+All 9 required dependencies present with correct groupIds, artifactIds, and scopes: spring-boot-starter-web (compile), spring-boot-starter-data-jpa (compile), spring-boot-starter-validation (compile), spring-boot-devtools (runtime/optional=true), flyway-core (compile), flyway-database-postgresql (compile), postgresql (runtime), spring-boot-starter-test (test), h2 (test). All correct.
+
+### src/main/resources/application.properties
+
+All 10 required properties present: server.port=3000, server.servlet.context-path=/api, devtools poll-interval=1000ms, devtools quiet-period=400ms, datasource URL with env-var defaults for DB_HOST/DB_PORT/DB_NAME, username=${DB_USERNAME:admin}, password=${DB_PASSWORD:admin}, PostgreSQLDialect, ddl-auto=validate, flyway.enabled=true. All correct.
+
+### src/test/resources/application.properties
+
+All 7 required properties present: H2 URL with MODE=PostgreSQL/DB_CLOSE_DELAY=-1/DATABASE_TO_UPPER=false, driver-class-name=org.h2.Driver, username=sa, password=(empty), H2Dialect, ddl-auto=none, flyway.enabled=true. All correct.
+
+Nothing is missing, wrong, or extraneous relative to the spec.
+
+---
+
+## Session — 2026-05-07
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** You are a code quality reviewer for a Java Spring Boot project. Review the Task 1 changes in the repo at `/Users/kgreenman/git/kg-pokemon` on branch `feat/java-backend-api`.
+
+The commit `cf4862a` changed:
+1. `packages/pokemon-user-backend-java/pom.xml` — added JPA, Flyway, PostgreSQL, H2, validation dependencies
+2. `packages/pokemon-user-backend-java/src/main/resources/application.properties` — full config with env-var substitution defaults
+3. `packages/pokemon-user-backend-java/src/test/resources/application.properties` — H2 test config
+
+Read these files and assess:
+- Are there any Maven dependency issues (wrong scopes, missing version management, redundant deps)?
+- Are the property values correct for a Spring Boot 3.5 / Java 25 app?
+- Is the H2 URL correctly configured for PostgreSQL-compatible mode?
+- Any security concerns with the config (the defaults like `admin/admin` are intentional for dev)?
+
+Respond with:
+- **Strengths**: What's done well
+- **Issues (Critical)**: Must fix before proceeding — list each with the fix
+- **Issues (Minor/Optional)**: Nice-to-have improvements
+- Final verdict: ✅ APPROVED or ❌ NEEDS FIXES
+
+**Claude:** I reviewed the three files from commit cf4862a, inspecting the effective POM (via `mvn help:effective-pom`), the dependency tree (`mvn dependency:tree`), the flyway-core JAR contents, and confirmed a clean compile against Java 25.0.2.
+
+**Tool calls and results (summarized):**
+- `git show cf4862a --stat` — confirmed 3 files changed, 41 insertions
+- Read `pom.xml`, `src/main/resources/application.properties`, `src/test/resources/application.properties`
+- `mvn dependency:tree` — resolved: flyway-core 11.7.2, flyway-database-postgresql 11.7.2, postgresql 42.7.5 (runtime), h2 2.3.232 (test), hibernate-core 6.6.15.Final
+- `jar tf flyway-core-11.7.2.jar | grep h2` — confirmed H2 database support is bundled in flyway-core (no separate flyway-database-h2 needed)
+- `mvn compile` — BUILD SUCCESS on Java 25.0.2
+
+**Review findings:**
+
+## Strengths
+
+**Maven dependencies are clean and idiomatic:**
+- All Spring Boot starters omit versions correctly — managed by `spring-boot-starter-parent 3.5.0` BOM.
+- `flyway-database-postgresql` is correctly included alongside `flyway-core` (PostgreSQL support was extracted in Flyway 10+).
+- `postgresql` driver correctly scoped `runtime`; H2 correctly scoped `test`.
+- `spring-boot-devtools` correctly `runtime`+`optional` and excluded from the fat JAR.
+- No redundant or version-pinned deps.
+
+**Main `application.properties`:**
+- `server.port=3000` and `server.servlet.context-path=/api` match the project convention.
+- All four datasource values use `${ENV_VAR:default}` substitution correctly.
+- `spring.jpa.hibernate.ddl-auto=validate` is the right production-safe choice when Flyway owns the schema.
+- Devtools poll/quiet intervals are reasonable Tilt live-reload tuning values.
+
+**Test `application.properties`:**
+- `MODE=PostgreSQL` is the correct H2 2.x option for PostgreSQL compatibility.
+- `DATABASE_TO_UPPER=false` is critical and correctly included.
+- `DB_CLOSE_DELAY=-1` is correct for in-memory databases with connection pooling.
+- `ddl-auto=none` correctly defers schema to Flyway.
+- H2 support is bundled in flyway-core-11.7.2.jar (confirmed via JAR inspection).
+
+**Java 25 / Spring Boot 3.5 compatibility:** Compile succeeds cleanly (BUILD SUCCESS).
+
+## Issues (Critical)
+
+None identified.
+
+## Issues (Minor / Optional)
+
+1. **`spring.jpa.database-platform` is unnecessary in both files** — Hibernate 6.x auto-detects dialect from the JDBC URL. Explicit entries add maintenance noise.
+2. **`spring.flyway.enabled=true` is redundant** — Flyway auto-configures when on the classpath.
+3. **Test H2 URL missing `DEFAULT_NULL_ORDERING=HIGH`** — PostgreSQL sorts NULLs LAST in ascending order; H2 defaults to NULLS FIRST. Recommend adding `DEFAULT_NULL_ORDERING=HIGH` to the H2 URL to avoid silent divergence on nullable columns.
+4. **`spring.jpa.open-in-view` not set** — Spring Boot defaults to `true`, emitting a startup warning and holding DB connections open for the full HTTP lifecycle. Set `spring.jpa.open-in-view=false` in main `application.properties` (best practice for REST APIs).
+5. **`admin/admin` defaults** — Intentional for dev per prompt; no action needed, but ensure env vars override in any non-local deployment.
+
+## Final Verdict
+
+✅ APPROVED — All dependency scopes are correct, versions are BOM-managed, the H2 test URL is properly configured, and the build compiles cleanly on Java 25. Minor items above are good hardening steps but none are blockers for Task 2.
+
+---
+
+## Session — 2026-05-07
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** You are implementing Task 2 of a Java Spring Boot REST API for a Pokemon Team Builder app. Work in the repo at `/Users/kgreenman/git/kg-pokemon` on branch `feat/java-backend-api`.
+
+## Context
+
+The Java backend lives at `packages/pokemon-user-backend-java/`. Task 1 is complete — Maven dependencies (JPA, Flyway, PostgreSQL, H2) are in pom.xml, and application.properties files are configured. Flyway is enabled in both main and test configs.
+
+## Task 2: Create Flyway Migrations
+
+Create the directory and 4 migration files:
+[V1__create_pokemon.sql, V2__create_profile.sql, V3__create_profile_pokemon.sql, V4__seed_pokemon.sql with 150 Pokemon]
+
+After creating the files, run `mvn test`. Expected: Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, BUILD SUCCESS.
+
+Then commit with message: "feat: add Flyway migrations V1-V4 with schema and 150 Pokemon seed"
+
+**Claude:** 
+
+Tool call: Read `/Users/kgreenman/git/kg-pokemon/packages/pokemon-user-backend-java/src/test/resources/application.properties`
+Result: H2 in-memory config with `spring.flyway.enabled=true`
+
+Tool call: Bash `mkdir -p .../db/migration`
+Result: Directory created.
+
+Tool call: Write V1__create_pokemon.sql — `CREATE TABLE IF NOT EXISTS pokemon (id INTEGER PRIMARY KEY, name VARCHAR(50) NOT NULL);`
+Tool call: Write V2__create_profile.sql — `CREATE TABLE IF NOT EXISTS profile (id SERIAL PRIMARY KEY, name VARCHAR(50) NOT NULL, version BIGINT NOT NULL DEFAULT 0);`
+Tool call: Write V3__create_profile_pokemon.sql — `CREATE TABLE IF NOT EXISTS profile_pokemon (id SERIAL PRIMARY KEY, profile_id INTEGER NOT NULL REFERENCES profile(id), pokemon_id INTEGER NOT NULL REFERENCES pokemon(id));`
+Tool call: Write V4__seed_pokemon.sql — INSERT of all 150 original Pokemon using PokeAPI lowercase slug names.
+
+Tool call: Bash `mvn test -f .../pom.xml`
+Result: All 4 migrations applied successfully to H2. Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, BUILD SUCCESS.
+
+Tool call: Bash `git add ... && git commit -m "feat: add Flyway migrations V1-V4 with schema and 150 Pokemon seed"`
+Result: Committed as 580ff80 on branch feat/java-backend-api. 4 files changed, 165 insertions.
+
+Task complete. STATUS: DONE
+
+---
+
+## Session — 2026-05-07
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** You are implementing Task 6 of a Java Spring Boot REST API for a Pokemon Team Builder app. Work in the repo at `/Users/kgreenman/git/kg-pokemon` on branch `feat/java-backend-api`.
+
+Task 6: Mappers (TDD — write failing test, then implement)
+- Create mapper and test packages
+- Write failing PokemonMapperTest.java, verify it fails, implement PokemonMapper.java, verify it passes
+- Write failing ProfileMapperTest.java, verify it fails, implement ProfileMapper.java, verify all tests pass
+- Commit
+
+**Claude:** Explored existing structure (entity/, dto/ packages all present). Followed TDD cycle:
+
+Tool call: Bash `mkdir -p .../mapper` (both src/main and src/test)
+Result: Directories created.
+
+Tool call: Write `PokemonMapperTest.java`
+Result: Test file created at `src/test/java/com/pokemon/userbackend/mapper/PokemonMapperTest.java`.
+
+Tool call: Bash `mvn test -Dtest=PokemonMapperTest` (expecting failure)
+Result: BUILD FAILURE — `cannot find symbol: class PokemonMapper` as expected.
+
+Tool call: Write `PokemonMapper.java`
+Result: Mapper created at `src/main/java/com/pokemon/userbackend/mapper/PokemonMapper.java`. Maps `Pokemon` entity to `PokemonDto` record.
+
+Tool call: Bash `mvn test -Dtest=PokemonMapperTest` (expecting pass)
+Result: Tests run: 1, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS.
+
+Tool call: Write `ProfileMapperTest.java`
+Result: Test file created at `src/test/java/com/pokemon/userbackend/mapper/ProfileMapperTest.java`. Two tests: empty team returns empty list; team with one ProfilePokemon maps to pokemon list.
+
+Tool call: Bash `mvn test -Dtest=ProfileMapperTest` (expecting failure)
+Result: BUILD FAILURE — `cannot find symbol: class ProfileMapper` as expected.
+
+Tool call: Write `ProfileMapper.java`
+Result: Mapper created at `src/main/java/com/pokemon/userbackend/mapper/ProfileMapper.java`. Two `toDto` overloads: one with no team (delegates to empty list), one with `List<ProfilePokemon>` that streams to `PokemonDto` list.
+
+Tool call: Bash `mvn test` (all tests)
+Result: Tests run: 4, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS. (3 new mapper tests + 1 pre-existing application context test.)
+
+Tool call: Bash `git add ... && git commit -m "feat: add PokemonMapper and ProfileMapper with tests"`
+Result: Committed as ad54404 on branch feat/java-backend-api. 4 files changed, 121 insertions.
+
+STATUS: DONE
+
+---
+
+## Session — 2026-05-07
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** You are implementing Task 8 of a Java Spring Boot REST API for a Pokemon Team Builder app. Work in the repo at `/Users/kgreenman/git/kg-pokemon` on branch `feat/java-backend-api`.
+
+[Full task spec: Task 8 — PokemonService + PokemonController (TDD). Steps 1–10 covering directory creation, failing tests, implementations, passing tests, and commit.]
+
+**Claude:**
+
+Tool call: Bash `ls packages/pokemon-user-backend-java/src/main/java/com/pokemon/userbackend/` + `git branch --show-current`
+Result: Existing packages: dto, entity, exception, mapper, repository, PokemonUserBackendApplication.java. Branch: feat/java-backend-api.
+
+Tool call: Bash `mkdir -p` for service and controller directories (main + test)
+Result: Directories created.
+
+Tool call: Write `PokemonServiceTest.java`
+Result: Test file created at `src/test/java/com/pokemon/userbackend/service/PokemonServiceTest.java`.
+
+Tool call: Bash `mvn test -Dtest=PokemonServiceTest` (expecting failure)
+Result: BUILD FAILURE — `cannot find symbol: class PokemonService` as expected.
+
+Tool call: Write `PokemonService.java`
+Result: Service created at `src/main/java/com/pokemon/userbackend/service/PokemonService.java`. Constructor injection of PokemonRepository and PokemonMapper; `findAll()` delegates to repository, maps via PokemonMapper.
+
+Tool call: Bash `mvn test -Dtest=PokemonServiceTest`
+Result: Tests run: 2, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS.
+
+Tool call: Write `PokemonControllerTest.java`
+Result: Test file created at `src/test/java/com/pokemon/userbackend/controller/PokemonControllerTest.java`. Uses `@WebMvcTest(PokemonController.class)`, MockMvc paths without `/api` prefix.
+
+Tool call: Bash `mvn test -Dtest=PokemonControllerTest` (expecting failure)
+Result: BUILD FAILURE — `cannot find symbol: class PokemonController` as expected.
+
+Tool call: Write `PokemonController.java`
+Result: Controller created at `src/main/java/com/pokemon/userbackend/controller/PokemonController.java`. `@RestController`, `@RequestMapping("/pokemon")`, `@GetMapping` delegates to PokemonService.findAll().
+
+Tool call: Bash `mvn test` (all tests)
+Result: Tests run: 8, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS.
+
+Tool call: Bash `git add ... && git commit -m "feat: implement GET /api/pokemon with service and controller (TDD)"`
+Result: Committed as 1ef1bec on branch feat/java-backend-api. 4 files changed, 153 insertions.
+
+STATUS: DONE
+
+---
+
+## Session — 2026-05-07
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** You are implementing Task 9 of a Java Spring Boot REST API for a Pokemon Team Builder app. Work in the repo at `/Users/kgreenman/git/kg-pokemon` on branch `feat/java-backend-api`.
+
+[Full task spec: Task 9 — Profile List + Create (TDD), covering `GET /profiles` and `POST /profiles`.]
+
+**Claude:**
+
+I'll implement Task 9 following the TDD steps exactly as specified.
+
+Tool call: Bash `git branch --show-current`
+Result: `feat/java-backend-api`
+
+Tool call: Bash `ls .../pokemon-user-backend-java/src/main/java/com/pokemon/userbackend/`
+Result: controller, dto, entity, exception, mapper, PokemonUserBackendApplication.java, repository, service
+
+**Step 1 — Write failing ProfileServiceTest.java**
+
+Tool call: Write `src/test/java/com/pokemon/userbackend/service/ProfileServiceTest.java`
+Result: File created successfully.
+
+**Step 2 — Verify test FAILS**
+
+Tool call: Bash `mvn test -Dtest=ProfileServiceTest`
+Result: BUILD FAILURE — `cannot find symbol: class ProfileService` (as expected).
+
+**Step 3 — Write ProfileService.java**
+
+Tool call: Write `src/main/java/com/pokemon/userbackend/service/ProfileService.java`
+Result: File created successfully with `findAll()` and `create()` methods.
+
+**Step 4 — Verify service test PASSES**
+
+Tool call: Bash `mvn test -Dtest=ProfileServiceTest`
+Result: Tests run: 2, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS.
+
+**Step 5 — Write failing ProfileControllerTest.java**
+
+Tool call: Write `src/test/java/com/pokemon/userbackend/controller/ProfileControllerTest.java`
+Result: File created successfully (3 tests: getProfiles_returns200WithList, createProfile_returns201WithDto, createProfile_returns400WhenNameIsBlank).
+
+**Step 6 — Verify controller test FAILS**
+
+Tool call: Bash `mvn test -Dtest=ProfileControllerTest`
+Result: BUILD FAILURE — `cannot find symbol: class ProfileController` (as expected).
+
+**Step 7 — Write ProfileController.java**
+
+Tool call: Write `src/main/java/com/pokemon/userbackend/controller/ProfileController.java`
+Result: File created successfully with `GET /profiles` and `POST /profiles` endpoints.
+
+**Step 8 — Run all tests**
+
+Tool call: Bash `mvn test` (all tests)
+Result: Tests run: 13, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS.
+
+**Step 9 — Commit**
+
+Tool call: Bash `git add ... && git commit -m "feat: implement GET /api/profiles and POST /api/profiles (TDD)"`
+Result: Committed as 055cddc on branch feat/java-backend-api. 4 files changed, 218 insertions.
+
+STATUS: DONE
+
+---
+
+## Session — 2026-05-07
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** You are implementing Task 10 (final task) of a Java Spring Boot REST API for a Pokemon Team Builder app. Work in the repo at `/Users/kgreenman/git/kg-pokemon` on branch `feat/java-backend-api`.
+
+[Full task spec: implement GET /api/profiles/{id} and PUT /api/profiles/{id}/team using TDD — add failing service tests, make them pass, add failing controller tests, make them pass, then commit.]
+
+**Claude:**
+
+Followed TDD steps as specified.
+
+**Step 1 — Add failing tests to ProfileServiceTest.java**
+
+Tool call: Read `ProfileServiceTest.java`, `ProfileControllerTest.java`, `ProfileService.java`, `ProfileController.java`
+Result: Read all four files successfully. Confirmed existing state — service has `findAll()` and `create()`, controller has `GET /profiles` and `POST /profiles`, tests have 2 service tests and 3 controller tests.
+
+Tool call: Read `ResourceNotFoundException.java`, `TeamSizeExceededException.java`, `UpdateTeamRequest.java`, `ProfileMapper.java`
+Result: All existing supporting classes confirmed — exceptions, DTOs, and mapper already in place.
+
+Tool call: Edit `ProfileServiceTest.java` — appended 6 new test methods (`getById_returnsProfileWithTeam`, `getById_throwsWhenNotFound`, `updateTeam_throwsWhenMoreThanSixPokemon`, `updateTeam_throwsWhenProfileNotFound`, `updateTeam_throwsWhenPokemonIdNotFound`, `updateTeam_replacesTeamAndReturnsDto`) inside the existing class body.
+
+**Step 2 — Verify new service tests FAIL**
+
+Tool call: Bash `mvn test -Dtest=ProfileServiceTest`
+Result: BUILD FAILURE — `cannot find symbol: method getById(int)` and `cannot find symbol: method updateTeam(...)` — confirmed expected failure.
+
+**Step 3 — Add getById and updateTeam to ProfileService.java**
+
+Tool call: Edit `ProfileService.java` — added imports (`Pokemon`, `ProfilePokemon`, `ResourceNotFoundException`, `TeamSizeExceededException`, `Transactional`, `Map`, `Collectors`).
+
+Tool call: Edit `ProfileService.java` — appended `getById(Integer id)` and `updateTeam(Integer profileId, List<Integer> pokemonIds)` methods to the class body.
+
+**Step 4 — Verify all 8 service tests PASS**
+
+Tool call: Bash `mvn test -Dtest=ProfileServiceTest`
+Result: `Tests run: 8, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS`
+
+**Step 5 — Add failing controller tests to ProfileControllerTest.java**
+
+Tool call: Edit `ProfileControllerTest.java` — added imports (`PokemonDto`, `UpdateTeamRequest`, `ResourceNotFoundException`, `TeamSizeExceededException`, `OptimisticLockingFailureException`, `eq`, `put`).
+
+Tool call: Edit `ProfileControllerTest.java` — appended 6 new test methods (`getProfile_returns200WithTeam`, `getProfile_returns404WhenNotFound`, `updateTeam_returns200WithUpdatedTeam`, `updateTeam_returns400WhenMoreThanSixPokemon`, `updateTeam_returns404WhenPokemonNotFound`, `updateTeam_returns409OnConcurrentUpdate`).
+
+**Step 6 — Verify new controller tests FAIL**
+
+Tool call: Bash `mvn test -Dtest=ProfileControllerTest`
+Result: BUILD FAILURE — 6 failures, all with `Status expected:<200/400/404/409> but was:<404>` — confirmed expected failure (routes not yet mapped).
+
+**Step 7 — Add getById and updateTeam to ProfileController.java**
+
+Tool call: Edit `ProfileController.java` — added imports (`UpdateTeamRequest`, `PathVariable`, `PutMapping`).
+
+Tool call: Edit `ProfileController.java` — appended `getProfile(@PathVariable Integer id)` and `updateTeam(@PathVariable Integer id, @RequestBody UpdateTeamRequest request)` methods.
+
+**Step 8 — Verify ALL tests PASS**
+
+Tool call: Bash `mvn test` (full suite)
+Result: `Tests run: 25, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS`
+
+**Step 9 — Commit**
+
+Tool call: Bash `git add ... && git commit -m "feat: implement GET /api/profiles/{id} and PUT /api/profiles/{id}/team (TDD)"`
+Result: Committed as af7891d on branch feat/java-backend-api. 4 files changed, 226 insertions.
+
+STATUS: DONE
+
+---
+
+## Session — 2026-05-07 (main session)
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** `/superpowers:subagent-driven-development create a new feature branch and implement the java-backend-api plan`
+
+**Claude:** Invoked `superpowers:using-git-worktrees` skill, confirmed in normal repo on `main`, read the plan at `docs/superpowers/plans/2026-05-07-java-backend-api.md` (10-task plan for full Java REST API), inspected existing scaffold (`pom.xml` with only web/devtools/test deps, minimal `application.properties`).
+
+Created feature branch `feat/java-backend-api`. Created 10 TaskCreate entries tracking all tasks. Executed each task via implementer subagents with inline spec verification:
+
+- **Task 1** — Maven deps + app config: Updated `pom.xml` (JPA, Flyway, PostgreSQL, H2, Validation), replaced main `application.properties`, created test `application.properties` with H2 config. Tests: 1/1 passing. Committed `cf4862a`.
+- **Task 2** — Flyway migrations: Created `db/migration/` with V1–V4 SQL files (pokemon, profile, profile_pokemon schema + 150 Pokémon seed). Tests: 1/1 passing. Committed `580ff80`.
+- **Task 3** — JPA entities: Created `Pokemon.java`, `Profile.java` (`@Version`), `ProfilePokemon.java`. Tests: 1/1 passing. Committed `7c090fe`.
+- **Task 4** — Repositories: Created `PokemonRepository`, `ProfileRepository`, `ProfilePokemonRepository` (with `@Transactional deleteByProfile`). Tests: 1/1 passing. Committed `9449b24`.
+- **Task 5** — DTOs: Created `PokemonDto`, `ProfileDto`, `CreateProfileRequest` (`@NotBlank`), `UpdateTeamRequest`, `ErrorResponse` as Java records. Tests: 1/1 passing. Committed `e88e63f`.
+- **Task 6** — Mappers (TDD): Red/green cycle for `PokemonMapper` and `ProfileMapper`. Tests: 4/4 passing. Committed `ad54404`.
+- **Task 7** — Exceptions + handler: Created `ResourceNotFoundException`, `TeamSizeExceededException`, `GlobalExceptionHandler` (`@RestControllerAdvice` mapping to 404/400/409/400). Tests: 4/4 passing. Committed `8c5d7ed`.
+- **Task 8** — PokemonService + PokemonController (TDD): Full red/green cycle for service (2 tests) and `@WebMvcTest` controller (2 tests). Total: 8/8 passing. Committed `1ef1bec`.
+- **Task 9** — Profile list + create (TDD): `ProfileService` findAll/create and `ProfileController` GET+POST /profiles. Total: 13/13 passing. Committed `055cddc`.
+- **Task 10** — Profile get + update team (TDD): Added `getById` and `updateTeam` to service (6 new tests) and controller (6 new endpoint tests including 404/400/409 error cases). Total: 25/25 passing. Committed `af7891d`.
+
+Invoked `superpowers:finishing-a-development-branch` skill. Tests verified (25/0). User chose option 2 (Push + PR). Pushed branch, created PR at https://github.com/drk-greenman/kg-pokemon/pull/2.
+
+**User:** `2`
+
+**Claude:** Pushed `feat/java-backend-api` and created PR #2 at https://github.com/drk-greenman/kg-pokemon/pull/2. Appended transcript, committed.
