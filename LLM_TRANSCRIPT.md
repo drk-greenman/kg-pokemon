@@ -1194,3 +1194,20 @@ Invoked `superpowers:finishing-a-development-branch` skill. Tests verified (25/0
 **User:** `2`
 
 **Claude:** Pushed `feat/java-backend-api` and created PR #2 at https://github.com/drk-greenman/kg-pokemon/pull/2. Appended transcript, committed.
+
+---
+
+## Session — 2026-05-07 (follow-up)
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** I noticed the llm transcript always says it is using sonnet as the model when I know some of the subagents are using haiku
+
+**Claude:** Acknowledged the issue — subagents follow the CLAUDE.md transcript format but hardcode `claude-sonnet-4-6` rather than reading their actual model from their system context. Tasks 3, 4, 5, and 7 were dispatched with `model: haiku` and should have written `claude-haiku-4-5-20251001`. Saved a feedback memory to remind future subagent prompts to explicitly include their actual model ID.
+
+**User:** push the transcript update to the PR
+
+**Claude:** Appended this exchange to LLM_TRANSCRIPT.md, committed, and pushed to `feat/java-backend-api`.
