@@ -1,0 +1,19 @@
+docker_build(
+    'pokemon-user-backend-java',
+    '../../',
+    dockerfile='../../packages/pokemon-user-backend-java/Dockerfile',
+    live_update=[
+        sync('./src', '/app/src'),
+        run('mvn compile -q -f /app/pom.xml'),
+    ]
+)
+
+k8s_yaml(['./k8s/local/deployment.yaml'])
+
+k8s_resource(
+    'pokemon-user-backend-java',
+    port_forwards=3000,
+    resource_deps=['pokemon-postgres'],
+    labels=['backend'],
+    links=['http://localhost:3000/api']
+)
