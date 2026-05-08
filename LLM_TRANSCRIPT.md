@@ -1566,3 +1566,137 @@ Same type safety, no repeated fields. Worth updating the plan if you agree.
 **User:** lets commit the plan and the llm transcript and push them to github
 
 **Claude:** Appended transcript, committed, and pushed.
+
+---
+
+## Session — 2026-05-07
+
+**Tool:** Claude Code  
+**Model:** claude-haiku-4-5-20251001
+
+### Conversation
+
+**User:** You are implementing Task 1 of a Pokémon Team Builder React SPA. The repo is a pnpm monorepo at /Users/kgreenman/git/kg-pokemon. The frontend package is at packages/pokemon-ui. You are on branch feat/pokemon-ui.
+
+**Context:** The app currently renders an NxWelcome placeholder. This task sets up the new dependencies and configures the Vite dev proxy before any component work begins. The existing 2 App tests must still pass when you're done.
+
+**Your task — do exactly these steps in order:**
+
+**Step 1: Install packages**
+Run from the repo root (/Users/kgreenman/git/kg-pokemon):
+```bash
+pnpm add @mui/material @mui/icons-material react-router-dom
+```
+@emotion/react and @emotion/styled are already in package.json — do NOT add them again. react-router-dom v6+ includes its own TypeScript types — do NOT add @types/react-router-dom.
+
+**Step 2: Update vite.config.ts**
+Replace the `server` block in packages/pokemon-ui/vite.config.ts so it reads:
+```ts
+server: {
+  port: 4200,
+  host: 'localhost',
+  proxy: {
+    '/api': 'http://localhost:3000',
+  },
+},
+```
+Leave everything else in the file unchanged.
+
+**Step 3: Verify tests still pass**
+```bash
+nx test pokemon-ui
+```
+Expected: 2 passing tests. If they fail, investigate and fix before continuing.
+
+**Step 4: Commit**
+Stage only: packages/pokemon-ui/vite.config.ts, pnpm-lock.yaml, package.json
+```bash
+git add packages/pokemon-ui/vite.config.ts pnpm-lock.yaml package.json
+git commit -m "feat(pokemon-ui): install MUI, react-router-dom; add /api proxy"
+```
+
+**Claude:** 
+
+**Step 1 — Install packages**
+
+_Tool call: Bash — `pnpm add @mui/material @mui/icons-material react-router-dom`_
+
+Output: Resolved 437 packages, downloaded 12. Progress: 1624 resolved, 1428 reused, 28 downloaded, 21 added. Installed in 11.7s using pnpm v10.33.2. Result:
+```
+dependencies:
++ @mui/icons-material 9.0.1
++ @mui/material 9.0.1
++ react-router-dom 7.15.0
+Done in 11.7s using pnpm v10.33.2
+```
+
+**Step 2 — Update vite.config.ts**
+
+_Tool call: Read — `/Users/kgreenman/git/kg-pokemon/packages/pokemon-ui/vite.config.ts`_
+
+Current state:
+```ts
+server: {
+  port: 4200,
+  host: 'localhost',
+},
+```
+
+_Tool call: Edit — replaced the `server` block to add proxy_
+
+New state:
+```ts
+server: {
+  port: 4200,
+  host: 'localhost',
+  proxy: {
+    '/api': 'http://localhost:3000',
+  },
+},
+```
+
+**Step 3 — Verify tests still pass**
+
+_Tool call: Bash — `nx test pokemon-ui`_
+
+Output:
+```
+> nx run pokemon-ui:test
+> vitest
+
+ RUN  v4.1.5 /Users/kgreenman/git/kg-pokemon/packages/pokemon-ui
+
+stderr | src/app/app.spec.tsx > App > should have a greeting as the title
+To match all elements we had to reset the lastIndex of the RegExp because the global flag is enabled. We encourage to remove the global flag from the RegExp.
+
+ ✓ src/app/app.spec.tsx (2 tests) 51ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  21:54:56
+   Duration  724ms (transform 31ms, setup 0ms, import 103ms, tests 51ms, environment 481ms)
+
+NX   Successfully ran target test for project pokemon-ui
+```
+
+Result: 2/2 tests pass.
+
+**Step 4 — Commit**
+
+_Tool call: Bash — `git add packages/pokemon-ui/vite.config.ts pnpm-lock.yaml package.json && git commit -m "feat(pokemon-ui): install MUI, react-router-dom; add /api proxy"`_
+
+Output:
+```
+[feat/pokemon-ui b0aac03] feat(pokemon-ui): install MUI, react-router-dom; add /api proxy
+ 3 files changed, 305 insertions(+)
+```
+
+_Tool call: Bash — `git rev-parse HEAD`_
+
+Output: `b0aac0342b6689e90fed35becc47a77e95ccfedf`
+
+**STATUS: DONE**
+
+Commit SHA: `b0aac03`
+
+Summary: Task 1 complete. Installed @mui/material 9.0.1, @mui/icons-material 9.0.1, react-router-dom 7.15.0. Updated vite.config.ts to proxy `/api` requests to `http://localhost:3000`. All 2 existing tests pass. Committed as b0aac03.
