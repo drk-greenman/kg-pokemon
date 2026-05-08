@@ -3015,3 +3015,70 @@ Key locator decisions documented:
 - `beforeAll` in team-builder uses `request.newContext()` to create the test profile via the live API
 
 Offered execution choice: subagent-driven (recommended) or inline.
+
+---
+
+## Session — 2026-05-08
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** execute the plan for the ui e2e tests
+
+**Claude:** Invoked `superpowers:executing-plans` skill, then `superpowers:subagent-driven-development` skill. Found the plan at `docs/superpowers/plans/2026-05-08-ui-e2e-tests.md`. Checked current state: `pg` available in root devDependencies, `example.spec.ts` exists, `playwright.config.ts` needs globalSetup/globalTeardown additions.
+
+Asked user to confirm working on `main` vs a feature branch.
+
+**User:** create a feature branch for this
+
+**Claude:** Invoked `superpowers:using-git-worktrees` skill. Used `EnterWorktree` tool to create a worktree at `/Users/kgreenman/git/kg-pokemon/.claude/worktrees/feat+ui-e2e-tests` on branch `worktree-feat+ui-e2e-tests`. Ran `pnpm install --frozen-lockfile`, verified baseline TypeScript compiles clean.
+
+Created 5 tasks in TodoWrite:
+1. Task 1: DB infrastructure and playwright.config.ts
+2. Task 2: Remove placeholder spec
+3. Task 3: profile-list.spec.ts (blocked by Task 1)
+4. Task 4: team-builder.spec.ts (blocked by Task 1)
+5. Task 5: Full suite run (blocked by Tasks 2, 3, 4)
+
+**Task 1 execution:**
+- Dispatched haiku implementer subagent → created `global-setup.ts`, `global-teardown.ts`, updated `playwright.config.ts`, committed `52fb7a9`
+- Spec compliance review (haiku): ✅ COMPLIANT
+- Code quality review (haiku): ✅ APPROVED
+- Task 1 marked complete
+
+**Task 2 execution:**
+- Dispatched haiku implementer subagent → deleted `example.spec.ts`, committed `4e6e745`
+- Task 2 marked complete (no reviews needed for a file deletion)
+
+**Task 3 execution:**
+- First dispatch (haiku) claimed success with SHA `2470c25` but commit didn't land — only `support/` directory existed in `src/`
+- Re-dispatched with sonnet → created `profile-list.spec.ts`, committed `423f3aa`
+- Spec compliance review (haiku): ✅ COMPLIANT
+- Code quality review (haiku): ✅ APPROVED
+- Task 3 marked complete
+
+**Task 4 execution:**
+- Dispatched sonnet implementer → created `team-builder.spec.ts`, committed `25b3567`
+- Spec compliance review (haiku): ✅ COMPLIANT (all 12 tests, beforeAll, imports verified)
+- Code quality review (haiku): ✅ APPROVED
+- Task 4 marked complete
+
+**Task 5 — Full suite run:**
+- Installed Playwright browser binaries (`pnpm exec playwright install` — 430MB download)
+- First run: 57 tests attempted, 14 failed
+  - Root cause 1: `fullyParallel: true` from `nxE2EPreset` distributes tests across workers out-of-file-order — team-builder test 10 ran before test 9
+  - Added `fullyParallel: false` to `playwright.config.ts`, committed `9ef5775`
+- Second run: 11 failed
+  - Root cause 2: Cross-browser, cross-file DB contamination — team-builder `beforeAll` creates "E2E Team Test" profiles from all 3 browsers' workers before profile-list test 2 (empty-state check) runs; `fullyParallel: false` fixed within-file ordering but different spec files still ran concurrently across workers
+  - Added `workers: 1` to `playwright.config.ts` (serializes all tests)
+  - Added per-browser `beforeAll` truncation to `profile-list.spec.ts` (each browser gets a clean DB at the start of its profile-list run, since globalSetup only runs once per suite)
+  - Committed `95c87c3`
+- Third run: **57/57 passed** (1m 6s)
+- Task 5 marked complete
+
+**User:** append the llm context then push and create a pull request
+
+**Claude:** Appended LLM transcript, then pushed branch and created PR.
+
