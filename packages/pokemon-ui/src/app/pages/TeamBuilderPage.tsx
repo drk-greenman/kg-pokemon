@@ -69,7 +69,7 @@ export function TeamBuilderPage() {
           <Typography variant="h6" css={css`flex: 1; margin-left: 8px;`}>
             {profileName}
           </Typography>
-          <Button color="inherit" onClick={handleSave}>
+          <Button color="inherit" onClick={handleSave} disabled={loading}>
             Save
           </Button>
         </Toolbar>

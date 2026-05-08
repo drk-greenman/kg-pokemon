@@ -2502,3 +2502,109 @@ Used `superpowers:subagent-driven-development` skill. Read plan from `docs/super
 **User:** ensure the llm transcript is up to date and then push and create a pull request
 
 **Claude:** Appended transcript, pushed branch, created PR.
+
+---
+
+## Session — 2026-05-08
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** /code-review:code-review review PR #3
+
+**Claude:** Using the code-review skill to review PR #3. Created task list and ran parallel agents.
+
+**Step 1 — Eligibility check (Haiku agent):**
+PR #3 is OPEN, not a draft, has no existing review from Claude Code. Eligible.
+
+**Step 2 — CLAUDE.md paths (Haiku agent):**
+Only relevant CLAUDE.md: `/Users/kgreenman/git/kg-pokemon/CLAUDE.md` (root). No package-level CLAUDE.md in `packages/pokemon-ui/`.
+
+**Step 3 — PR summary (Haiku agent):**
+PR title: `feat(pokemon-ui): build React SPA — profile list, team builder, API layer`. Adds MUI 9.0.1, react-router-dom 7.15.0, axios API layer, components (PokemonCard, TeamRow, PokemonGrid, NewProfileDialog), pages (ProfileListPage, TeamBuilderPage), BrowserRouter + routes in App.tsx. 22 files, 2023 additions, 8 deletions. 29 tests passing.
+
+**Step 4 — 5 parallel review agents (Sonnet):**
+
+Agent 1 (CLAUDE.md audit): Found Prettier formatting violations (arrow params without parens) in 7 files; `<button>` missing `type` attribute in 2 files. Both are linter-caught issues.
+
+Agent 2 (Bug scan): Found (1) unhandled promise rejection when `createProfile` fails — `NewProfileDialog.handleSubmit` has `try/finally` but no `catch`, and `ProfileListPage.handleCreate` has no error handling; (2) Save button is always visible/clickable including during loading — clicking during load calls `updateTeam(profileId, [])`, wiping the existing team.
+
+Agent 3 (Git history): Found same Save-during-loading bug, same unhandled rejection bug, plus `handleSelect` missing cap guard (backend enforces max 6), and minor type mismatch (`createProfile` typed as returning `Profile` but backend always returns `pokemon: []`).
+
+Agent 4 (Prior PR comments): Found same `handleSelect` cap guard issue, same unhandled rejection issue, plus `Number(id)` NaN guard missing in `TeamBuilderPage`, plus missing test for `NewProfileDialog` error state.
+
+Agent 5 (Code comments): Found test assertions in `PokemonCard.spec.tsx`, `TeamRow.spec.tsx`, `PokemonGrid.spec.tsx`, and `NewProfileDialog.spec.tsx` diverged from plan spec (e.g., `toHaveStyle`/`toHaveAttribute`/`toBeDisabled` replaced with raw DOM property checks; `PokemonGrid.spec.tsx` second test entirely rewritten dropping opacity assertion).
+
+**Step 5 — Scoring (parallel Haiku agents):**
+- Save button wipes team during loading: **92**
+- Unhandled rejection on createProfile failure: **85**
+- `handleSelect` missing cap guard: **35**
+- NaN guard missing for `profileId`: **72**
+- PokemonGrid atCap visual test rewritten: **35**
+
+**Step 6 — Filter:** Issues scoring ≥ 80: Save button (92), unhandled rejection (85).
+
+**Step 7 — Final eligibility check:** PR still OPEN, not draft, no existing review. Still eligible.
+
+**Step 8 — Posted review comment:** https://github.com/drk-greenman/kg-pokemon/pull/3#issuecomment-4406533210
+
+Review comment posted:
+
+> ### Code review
+>
+> Found 2 issues:
+>
+> 1. Save button is always clickable, including during the initial data load — clicking Save before `selectedPokemonIds` is populated from the profile will call `updateTeam(profileId, [])`, sending an empty pokemonIds array to the backend and wiping the existing team. The page navigates away after save, so the data loss may go unnoticed. Fix: disable the Save button while `loading` is true.
+>
+> [TeamBuilderPage.tsx#L71-L75](https://github.com/drk-greenman/kg-pokemon/blob/2bf08f89720027d925b9b8e62cc80c91c3caefb1/packages/pokemon-ui/src/app/pages/TeamBuilderPage.tsx#L71-L75)
+>
+> 2. `NewProfileDialog.handleSubmit` wraps `await onCreate(name.trim())` in `try/finally` with no `catch`. If `createProfile` fails (network error, server 500, etc.), the error propagates out of `handleSubmit` and out of `ProfileListPage.handleCreate` (which also has no error handling) as an unhandled promise rejection — the dialog just re-enables with no feedback to the user.
+>
+> [NewProfileDialog.tsx#L20-L30](https://github.com/drk-greenman/kg-pokemon/blob/2bf08f89720027d925b9b8e62cc80c91c3caefb1/packages/pokemon-ui/src/app/components/NewProfileDialog.tsx#L20-L30)
+>
+> [ProfileListPage.tsx#L34-L39](https://github.com/drk-greenman/kg-pokemon/blob/2bf08f89720027d925b9b8e62cc80c91c3caefb1/packages/pokemon-ui/src/app/pages/ProfileListPage.tsx#L34-L39)
+
+---
+
+**User:** append the session to LLM_TRANSCRIPT.md
+
+**Claude:** Appended this session to LLM_TRANSCRIPT.md.
+
+---
+
+## Session — 2026-05-08
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** fix up the code based on the code review comments on the PR
+
+**Claude:** Invoked `superpowers:receiving-code-review` skill.
+
+Fetched PR #3 comments via `gh pr view 3 --comments`. Two issues identified:
+
+1. Save button always clickable — clicking during load wipes existing team by sending `updateTeam(profileId, [])`.
+2. `NewProfileDialog.handleSubmit` has `try/finally` with no `catch` — errors silently propagate as unhandled promise rejections.
+
+Read `TeamBuilderPage.tsx`, `NewProfileDialog.tsx`, and `ProfileListPage.tsx` to verify.
+
+**Fix 1** — `packages/pokemon-ui/src/app/pages/TeamBuilderPage.tsx:72`: Added `disabled={loading}` to the Save button.
+
+**Fix 2** — `packages/pokemon-ui/src/app/components/NewProfileDialog.tsx`:
+- Added `Alert` import from MUI.
+- Added `error` state (`useState<string | null>(null)`).
+- Added `catch` block in `handleSubmit` that sets error state.
+- Added `setError(null)` on submit start.
+- Rendered `<Alert severity="error">` in dialog content when error is set.
+
+Ran `nx lint pokemon-ui` (0 errors, 4 pre-existing warnings) and `nx test pokemon-ui` (29/29 pass).
+
+---
+
+**User:** ammend the LLM transcript, commit changes and push
+
+**Claude:** Appended session to LLM_TRANSCRIPT.md, committed, and pushed.

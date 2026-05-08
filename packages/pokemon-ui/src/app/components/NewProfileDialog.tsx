@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   Button,
   Dialog,
   DialogActions,
@@ -17,13 +18,17 @@ interface Props {
 export function NewProfileDialog({ open, onClose, onCreate }: Props) {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     setLoading(true);
+    setError(null);
     try {
       await onCreate(name.trim());
       setName('');
       onClose();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -33,6 +38,11 @@ export function NewProfileDialog({ open, onClose, onCreate }: Props) {
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
       <DialogTitle>New Profile</DialogTitle>
       <DialogContent>
+        {error && (
+          <Alert severity="error" css={{ marginBottom: 8 }}>
+            {error}
+          </Alert>
+        )}
         <TextField
           autoFocus
           label="Profile name"
