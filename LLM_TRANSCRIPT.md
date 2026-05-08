@@ -2780,3 +2780,60 @@ Added `chunkSizeWarningLimit: 600` to `vite.config.ts`. The build will no longer
 **User:** append this chat to the llm transcript
 
 **Claude:** Appended this session to LLM_TRANSCRIPT.md.
+
+---
+
+## Session — 2026-05-08
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** /superpowers:writing-plans lets fill in the pokemon-user-backend-e2e tests in the existing package. This should cover all of our api endpoints.
+
+**Claude:** I'm using the writing-plans skill to create the implementation plan.
+
+Explored the codebase: read the e2e package structure, the NestJS backend (which turned out to be a placeholder), the frontend API files (`pokemon.ts`, `profiles.ts`, `client.ts`, `types/index.ts`), and the test infrastructure (`jest.config.ts`, `test-setup.ts`, `global-setup.ts`, `global-teardown.ts`).
+
+Found that the frontend API layer expects five endpoints:
+- `GET /api/pokemon`
+- `GET /api/profiles`
+- `POST /api/profiles`
+- `GET /api/profiles/:id`
+- `PUT /api/profiles/:id/team`
+
+The existing placeholder spec tested a non-existent `GET /api` route. The NestJS backend only had `GET /api/hello`.
+
+Wrote a full implementation plan to `docs/superpowers/plans/2026-05-08-backend-e2e-tests.md` covering 9 tasks: write failing e2e tests first (TDD), then implement NestJS entities/migration/modules to make them pass.
+
+---
+
+**User:** the backend for this project is using java and is in the pokemon-user-backend-java package. You should ignore the pokemon-user-backend package and update your instructions so you don't try to use it again. Then redo this spec using the information for the correct java backend.
+
+**Claude:** Invoked `superpowers:receiving-code-review` skill.
+
+Saved memory to `memory/project_backend_package.md`: active backend is `packages/pokemon-user-backend-java` (Spring Boot); never use `packages/pokemon-user-backend` (NestJS).
+
+Explored the Java backend thoroughly:
+- Controllers: `PokemonController` (`GET /pokemon`), `ProfileController` (`GET /profiles`, `POST /profiles`, `GET /profiles/:id`, `PUT /profiles/:id/team`)
+- DTOs: `PokemonDto(Integer id, String name)`, `ProfileDto(Integer id, String name, List<PokemonDto> pokemon)`, `CreateProfileRequest(@NotBlank String name)`, `UpdateTeamRequest(@NotNull List<Integer> pokemonIds)`
+- `GlobalExceptionHandler`: 404 for `ResourceNotFoundException`, 400 for `TeamSizeExceededException` and `MethodArgumentNotValidException`
+- `ProfileService.updateTeam`: throws 404 if any pokemon ID not found (not 400)
+- `ProfileMapper.toDto(Profile)`: always returns `pokemon: []` — the list endpoint includes the pokemon field as an empty list
+- Flyway migrations: `V1__create_pokemon.sql`, `V2__create_profile.sql` (with `version` column for optimistic locking), `V3__create_profile_pokemon.sql` (serial PK, not composite), `V4__seed_pokemon.sql`
+- Backend is already fully implemented — plan is tests-only
+
+Rewrote the plan: 4 tasks covering only test files (`test-setup.ts` cleanup, delete placeholder spec, `pokemon.spec.ts`, `profiles.spec.ts`). 19 total tests.
+
+---
+
+**User:** i don't care about the ordering of the pokemon in the profile list, lets not have the tests care either
+
+**Claude:** Updated the plan: replaced the positional `pokemon[0].id`, `pokemon[1].id`, `pokemon[2].id` assertions in the "sets the team" test with `toContain` checks on a mapped `returnedIds` array. Also removed the ordering note from the API Contract section. No test in the plan now asserts order.
+
+---
+
+**User:** append this session to the llm_transcript and then commit the transcript and the plan
+
+**Claude:** Appended this session to `LLM_TRANSCRIPT.md` and committed both files.
