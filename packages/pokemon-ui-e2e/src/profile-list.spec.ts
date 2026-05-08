@@ -1,7 +1,26 @@
 import { test, expect } from '@playwright/test';
+import { Client } from 'pg';
 
 const PROFILE_1 = 'Ash';
 const PROFILE_2 = 'Misty';
+
+// Each browser project runs this spec in its own worker; truncate so every
+// browser starts with a clean DB regardless of what previous browsers left behind.
+test.beforeAll(async () => {
+  const client = new Client({
+    host: process.env['DB_HOST'] ?? 'localhost',
+    port: parseInt(process.env['DB_PORT'] ?? '5432', 10),
+    user: process.env['DB_USERNAME'] ?? 'admin',
+    password: process.env['DB_PASSWORD'] ?? 'admin',
+    database: process.env['DB_NAME'] ?? 'pokemon',
+  });
+  await client.connect();
+  try {
+    await client.query('TRUNCATE profile_pokemon, profile RESTART IDENTITY CASCADE');
+  } finally {
+    await client.end();
+  }
+});
 
 test('app bar shows "Pokémon Team Builder"', async ({ page }) => {
   await page.goto('/');
