@@ -3082,3 +3082,86 @@ Created 5 tasks in TodoWrite:
 
 **Claude:** Appended LLM transcript, then pushed branch and created PR.
 
+
+---
+
+## Session — 2026-05-08
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** lets check through the codebase and ensure the documentation is up to date for each package. Lets make sure each package has its own readme with important details on how to run it and what it does
+
+**Claude:** Invoked the `superpowers:brainstorming` skill, then created tasks to track the brainstorming process. Explored the project context by listing all packages, checking for existing READMEs, reading the root README, and reviewing existing spec/plan docs in `docs/superpowers/`.
+
+Found 5 packages (none with READMEs): `pokemon-ui`, `pokemon-ui-e2e`, `pokemon-user-backend` (NestJS, deprecated), `pokemon-user-backend-e2e`, `pokemon-user-backend-java` (Spring Boot, active). Read the root README (original interview prompt, references NestJS stack). Reviewed specs in `docs/superpowers/specs/` for context on what was built.
+
+Asked first clarifying question: what to do with the old NestJS `pokemon-user-backend` package.
+
+**User:** lets actually just delete the old deprecated backend package
+
+**Claude:** Confirmed the deletion scope (full directory including source, Dockerfile, k8s manifests). User confirmed. Checked for all references to `pokemon-user-backend` across config files — found stale references in `package.json` (scripts, NestJS/MikroORM dependencies) and `packages/pokemon-user-backend-e2e/project.json` (implicitDependencies, dependsOn).
+
+Deleted `packages/pokemon-user-backend`. Cleaned up `package.json`:
+- Updated scripts: `pokemon-user-backend:serve` → `pokemon-user-backend-java:serve`, updated `start` script accordingly
+- Removed dead dependencies: all `@mikro-orm/*`, `@nestjs/common/core/platform-express`, `class-validator`, `pg`, `reflect-metadata`, `rxjs`
+- Removed dead devDependencies: `@nestjs/schematics`, `@nestjs/testing`, `@nx/nest`, `@nx/node`, `@types/pg`
+- Removed `@nestjs/core` from `pnpm.onlyBuiltDependencies`
+
+Updated `packages/pokemon-user-backend-e2e/project.json`: changed `implicitDependencies` and `dependsOn` from `pokemon-user-backend` to `pokemon-user-backend-java`.
+
+Updated memory file `project_backend_package.md` to note the NestJS package was deleted.
+
+**Claude (continued clarifying questions):** Asked whether to update the root README (user chose: update it). Asked what depth the per-package READMEs should cover (user selected all: API reference, architecture/structure, testing instructions, config/env vars).
+
+Proposed 3 approaches:
+- **Option A (recommended):** Flat per-package READMEs — self-contained, lowest friction
+- **Option B:** Central dev guide + thin package READMEs
+- **Option C:** Package READMEs + shared `docs/architecture.md`
+
+**User:** yes option A is fine
+
+**Claude:** Presented full design across all 7 deliverables (Maven wrapper, setup.sh, root README, 4 package READMEs). Noted that `nx run <project>:<target>` should be `nx <target> <project>` per CLAUDE.md conventions.
+
+**User:** are there any extra dependencies that need to be installed on a local machine (like maven) since we switched to java? are there any updates to the setup script that are needed?
+
+**Claude:** Checked the Java backend's `Tiltfile`, `Dockerfile`, and `project.json`. Found:
+- `tilt up` builds entirely inside Docker (`maven:3-eclipse-temurin-25-alpine`) — no local Java/Maven needed
+- `nx serve/test/build` commands run `mvn` directly — require Java 25 and Maven locally
+- No Maven wrapper (`mvnw`) present
+- `setup.sh` has no Java or Maven check
+
+Recommended adding Java 25 + Maven checks to setup.sh, noting the distinction between Tilt (no prereqs) and local `nx` commands.
+
+**User:** yes that makes sense, would having a mvnw file simplify this at all for users?
+
+**Claude:** Explained that a Maven wrapper would eliminate Maven as a local prerequisite (it auto-downloads the pinned version) but Java 25 would still be required. Tradeoffs: generates 3 files, requires updating `project.json` from `mvn` to `./mvnw`, no change needed to Dockerfile or Tiltfile (Maven already present in container). Recommended adding it.
+
+**User:** yes lets add the mvn wrapper to the plan
+
+**Claude:** Updated full design to include: generate Maven wrapper (pin Maven 3.9.9), update `project.json` to use `./mvnw`, setup.sh only needs Java 25 check (not Maven). Presented complete final design.
+
+**User:** yes this looks good
+
+**Claude:** Invoked `superpowers:writing-plans` skill. Explored Java source structure to get accurate architecture details:
+- Controllers → Services → Repositories → Entities → DTOs → Mappers → Exceptions
+- Flyway migrations: V1–V4 in `src/main/resources/db/migration/`
+- Backend E2E: `pokemon.spec.ts`, `profiles.spec.ts` + support (global-setup/teardown, test-setup)
+- UI E2E: `profile-list.spec.ts`, `team-builder.spec.ts` + support
+
+Wrote implementation plan to `docs/superpowers/plans/2026-05-08-package-documentation.md` with 7 tasks:
+1. Generate Maven wrapper + update project.json
+2. Add Java 25 check to setup.sh
+3. Update root README.md
+4. Create `packages/pokemon-user-backend-java/README.md`
+5. Create `packages/pokemon-ui/README.md`
+6. Create `packages/pokemon-user-backend-e2e/README.md`
+7. Create `packages/pokemon-ui-e2e/README.md`
+
+Committed spec (`ca6db5a`) and plan (`0217827`). Offered execution choice.
+
+**User:** lets append the llm transcript, commit the plan and spec, and push it
+
+**Claude:** Checked git status — spec and plan already committed; NestJS deletion + package.json cleanup + project.json fix still unstaged. Appended transcript to `LLM_TRANSCRIPT.md`. Committed all remaining changes and pushed.

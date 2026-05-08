@@ -2,7 +2,7 @@
   "name": "pokemon-user-backend-e2e",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "implicitDependencies": ["pokemon-user-backend"],
+  "implicitDependencies": ["pokemon-user-backend-java"],
   "targets": {
     "e2e": {
       "executor": "@nx/jest:jest",
@@ -11,7 +11,7 @@
         "jestConfig": "packages/pokemon-user-backend-e2e/jest.config.ts",
         "passWithNoTests": true
       },
-      "dependsOn": ["pokemon-user-backend:build"]
+      "dependsOn": ["pokemon-user-backend-java:build"]
     }
   }
 }
