@@ -17,7 +17,7 @@ Replace the placeholder `example.spec.ts` with two spec files â€” one per page â
 
 A `globalSetup` hook runs once before the entire Playwright run. It connects directly to Postgres (`localhost:5432`, database `pokemon`, credentials `admin/admin`) using the `pg` client and runs `TRUNCATE profile_pokemon, profile RESTART IDENTITY CASCADE`. This exactly matches the pattern used by the backend E2E global setup.
 
-A `globalTeardown` hook performs the same truncation after the run for cleanliness.
+A `globalTeardown` hook is a no-op, matching the backend E2E pattern. Test data remains in the database after the run and is available for debugging; it is cleaned up at the start of the next run.
 
 **New files:**
 - `packages/pokemon-ui-e2e/src/support/global-setup.ts`
