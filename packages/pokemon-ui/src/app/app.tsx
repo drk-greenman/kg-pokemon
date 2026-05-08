@@ -1,9 +1,16 @@
-import styled from '@emotion/styled';
-
-import NxWelcome from './nx-welcome';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { ProfileListPage } from './pages/ProfileListPage';
+import { TeamBuilderPage } from './pages/TeamBuilderPage';
 
 export function App() {
-  return <NxWelcome title="pokemon-ui" />
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<ProfileListPage />} />
+        <Route path="/profiles/:id" element={<TeamBuilderPage />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
 export default App;

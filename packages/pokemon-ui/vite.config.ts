@@ -10,6 +10,9 @@ export default defineConfig({
   server: {
     port: 4200,
     host: 'localhost',
+    proxy: {
+      '/api': 'http://localhost:3000',
+    },
   },
 
   preview: {
@@ -28,6 +31,7 @@ export default defineConfig({
     outDir: '../../dist/packages/pokemon-ui',
     emptyOutDir: true,
     reportCompressedSize: true,
+    chunkSizeWarningLimit: 600,
     commonjsOptions: {
       transformMixedEsModules: true,
     },
