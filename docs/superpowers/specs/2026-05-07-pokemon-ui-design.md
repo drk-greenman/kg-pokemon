@@ -36,6 +36,8 @@ No shared global state between views. Each page owns its own fetch state.
 
 MUI requires `@emotion/react` and `@emotion/styled` as peer dependencies — both are already present in the workspace root `package.json`.
 
+**Vite proxy:** The frontend dev server runs on port 4200; the backend runs on port 3000. `vite.config.ts` must add a `server.proxy` entry so that requests to `/api` are forwarded to `http://localhost:3000`. The Axios client uses baseURL `/api` (relative), relying on this proxy in dev.
+
 ---
 
 ## Component Tree
@@ -62,7 +64,7 @@ App
 
 **Rendering:**
 - MUI `AppBar` with the app title.
-- MUI `List` where each `ListItem` shows the profile name and team size (e.g. "3 Pokémon") with a trailing chevron. Clicking navigates to `/profiles/:id`.
+- MUI `List` where each `ListItem` shows the profile name with a trailing chevron. Clicking navigates to `/profiles/:id`.
 - A final `ListItem` styled as dashed reads "+ New Profile". Clicking opens `NewProfileDialog`.
 
 **NewProfileDialog:**
