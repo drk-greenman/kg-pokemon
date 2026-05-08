@@ -94,9 +94,9 @@ App
 **PokemonGrid:**
 - CSS grid of `PokemonCard` components, one per Pokémon (150 total).
 - Each card: sprite image + name below.
-- **Selected:** card has a highlighted border/background.
-- **At cap (6 selected) and not selected:** card renders at reduced opacity and ignores clicks.
-- Clicking a non-capped unselected card appends its ID to `selectedPokemonIds`. Clicking a selected card removes it.
+- **Has copies on team:** card shows a count badge (e.g. "×2") indicating how many times that Pokémon appears in `selectedPokemonIds`.
+- **At cap (6 selected):** card renders at reduced opacity and ignores clicks.
+- Clicking a card always appends its ID to `selectedPokemonIds` (no toggle — removal is done via the TeamRow slots). Clicks are ignored when at cap.
 
 **Sprite URL:** derived client-side — `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
 
@@ -130,7 +130,7 @@ TeamBuilderPage mount
   → GET /api/profiles/:id (parallel)
   → seed selectedPokemonIds from profile.pokemon
 
-PokemonCard click → toggle ID in selectedPokemonIds (cap 6)
+PokemonCard click → append ID to selectedPokemonIds (ignored at cap of 6)
 TeamRow slot click → remove ID from selectedPokemonIds
 
 Save → PUT /api/profiles/:id/team { pokemonIds }
@@ -171,7 +171,7 @@ Vitest + React Testing Library. Mock Axios at the module level.
 
 | Component / Page | What to test |
 |---|---|
-| `PokemonCard` | Renders sprite + name; applies selected style; ignores clicks when at cap and unselected |
+| `PokemonCard` | Renders sprite + name; shows count badge when copies are on the team; appends on click; ignores clicks at cap |
 | `TeamRow` | Renders 6 slots; fills from `selectedPokemonIds`; fires remove callback on filled slot click |
 | `ProfileListPage` | Renders profile list from mocked API; opens dialog on "+ New Profile"; closes and appends on successful create |
 | `TeamBuilderPage` | Seeds `selectedPokemonIds` from profile fetch; toggles selection; enforces cap of 6; calls correct API on Save |
@@ -182,7 +182,6 @@ Vitest + React Testing Library. Mock Axios at the module level.
 
 - Delete profile
 - Search / filter Pokémon list
-- Duplicate Pokémon detection within a team
 - Pagination (150 records rendered all at once)
 - Authentication
 - Playwright E2E tests (scaffold exists but not wired up here)
