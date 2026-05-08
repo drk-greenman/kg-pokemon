@@ -119,6 +119,28 @@ else
 fi
 
 # ─────────────────────────────────────────────
+# 5. Java 25
+# ─────────────────────────────────────────────
+header "5. Java 25"
+
+if ! command -v java &>/dev/null; then
+  fail "Java not found. Java 25 JDK is required to run backend commands locally."
+  fail "  macOS:  brew install --cask temurin@25"
+  fail "  Other:  https://adoptium.net/"
+  ERRORS=$((ERRORS + 1))
+else
+  JAVA_MAJOR=$(java --version 2>/dev/null | head -1 | awk '{print $2}' | cut -d. -f1)
+  if [ -z "$JAVA_MAJOR" ] || ! [ "$JAVA_MAJOR" -ge 25 ] 2>/dev/null; then
+    fail "Java 25+ required (found version: $JAVA_MAJOR). Install:"
+    fail "  macOS:  brew install --cask temurin@25"
+    fail "  Other:  https://adoptium.net/"
+    ERRORS=$((ERRORS + 1))
+  else
+    ok "Java $JAVA_MAJOR"
+  fi
+fi
+
+# ─────────────────────────────────────────────
 # Bail if prerequisites are missing
 # ─────────────────────────────────────────────
 if [ "$ERRORS" -gt 0 ]; then
@@ -129,9 +151,9 @@ if [ "$ERRORS" -gt 0 ]; then
 fi
 
 # ─────────────────────────────────────────────
-# 5. Install dependencies
+# 6. Installing dependencies
 # ─────────────────────────────────────────────
-header "5. Installing dependencies"
+header "6. Installing dependencies"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
