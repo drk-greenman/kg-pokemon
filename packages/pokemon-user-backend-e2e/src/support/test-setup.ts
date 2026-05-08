@@ -15,6 +15,9 @@ module.exports = async function () {
     database: process.env['DB_NAME'] ?? 'pokemon',
   });
   await client.connect();
-  await client.query('TRUNCATE profile_pokemon, profile RESTART IDENTITY CASCADE');
-  await client.end();
+  try {
+    await client.query('TRUNCATE profile_pokemon, profile RESTART IDENTITY CASCADE');
+  } finally {
+    await client.end();
+  }
 };
