@@ -83,8 +83,8 @@ describe('TeamBuilderPage', () => {
   });
 
   it('shows a loading indicator before data is ready', () => {
-    vi.mocked(pokemonApi.getPokemons).mockReturnValue(new Promise(() => {}));
-    vi.mocked(profilesApi.getProfile).mockReturnValue(new Promise(() => {}));
+    vi.mocked(pokemonApi.getPokemons).mockReturnValue(new Promise(() => undefined));
+    vi.mocked(profilesApi.getProfile).mockReturnValue(new Promise(() => undefined));
     renderPage();
     expect(screen.getByRole('progressbar')).toBeTruthy();
   });

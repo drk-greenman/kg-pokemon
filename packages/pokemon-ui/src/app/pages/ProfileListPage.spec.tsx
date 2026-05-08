@@ -47,7 +47,7 @@ describe('ProfileListPage', () => {
   });
 
   it('shows a loading indicator while fetching', () => {
-    vi.mocked(profilesApi.getProfiles).mockReturnValue(new Promise(() => {}));
+    vi.mocked(profilesApi.getProfiles).mockReturnValue(new Promise(() => undefined));
     renderPage();
     expect(screen.getByRole('progressbar')).toBeTruthy();
   });
