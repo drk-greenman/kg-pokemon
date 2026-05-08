@@ -31,6 +31,7 @@ export default defineConfig({
     outDir: '../../dist/packages/pokemon-ui',
     emptyOutDir: true,
     reportCompressedSize: true,
+    chunkSizeWarningLimit: 600,
     commonjsOptions: {
       transformMixedEsModules: true,
     },

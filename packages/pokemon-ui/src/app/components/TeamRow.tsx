@@ -30,6 +30,7 @@ export function TeamRow({ selectedPokemonIds, onRemove }: Props) {
         const filled = id != null;
         return (
           <button
+            type='button'
             key={i}
             onClick={() => {
               if (filled) onRemove(i);

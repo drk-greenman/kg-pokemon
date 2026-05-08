@@ -14,6 +14,7 @@ interface Props {
 export function PokemonCard({ pokemon, count, atCap, onSelect }: Props) {
   return (
     <button
+      type="button"
       onClick={() => { if (!atCap) onSelect(pokemon.id); }}
       css={css`
         position: relative;

@@ -10,7 +10,7 @@ vi.mock('../api/profiles');
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async importOriginal => {
   const mod = await importOriginal<typeof import('react-router-dom')>();
-  return { ...mod, useNavigate: () => mockNavigate };
+return { ...mod, useNavigate: () => mockNavigate }; // eslint-disable-line @eslint-react/hooks-extra/no-unnecessary-use-prefix
 });
 
 const mockPokemon = [

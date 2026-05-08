@@ -2608,3 +2608,175 @@ Ran `nx lint pokemon-ui` (0 errors, 4 pre-existing warnings) and `nx test pokemo
 **User:** ammend the LLM transcript, commit changes and push
 
 **Claude:** Appended session to LLM_TRANSCRIPT.md, committed, and pushed.
+
+---
+
+## Session — 2026-05-08
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** tell me about this linter warning and how I would fix it: packages/pokemon-ui/src/app/pages/TeamBuilderPage.spec.tsx
+  13:20  warning  If your function doesn't call any Hooks, avoid the 'use' prefix. Instead, write it as a regular function without the 'use' prefix  @eslint-react/hooks-extra/no-unnecessary-use-prefix
+
+**Claude:** Let me read the relevant part of that file.
+
+_Tool call: Read — `/Users/kgreenman/git/kg-pokemon/packages/pokemon-ui/src/app/pages/TeamBuilderPage.spec.tsx` (lines 1–30)_
+
+Output:
+```
+1  import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+2  import { MemoryRouter, Routes, Route } from 'react-router-dom';
+3  import { TeamBuilderPage } from './TeamBuilderPage';
+4  import * as pokemonApi from '../api/pokemon';
+5  import * as profilesApi from '../api/profiles';
+6
+7  vi.mock('../api/pokemon');
+8  vi.mock('../api/profiles');
+9
+10 const mockNavigate = vi.fn();
+11 vi.mock('react-router-dom', async importOriginal => {
+12   const mod = await importOriginal<typeof import('react-router-dom')>();
+13   return { ...mod, useNavigate: () => mockNavigate };
+14 });
+...
+```
+
+The warning is on line 13 — `useNavigate: () => mockNavigate`. The ESLint rule `@eslint-react/hooks-extra/no-unnecessary-use-prefix` flags arrow functions whose name starts with `use` but don't actually call any React hooks inside them.
+
+Here, `() => mockNavigate` is an anonymous arrow function, so the rule isn't complaining about *that*. The warning is at column 20, which points to the *property key* `useNavigate` in the object literal. The rule sees `useNavigate` as a function-valued property with a `use`-prefixed name and no hook calls inside, and flags it.
+
+**The fix:** rename the key to something without the `use` prefix, or suppress it. Since this is a mock that needs to match the actual export name, suppression is the right call:
+
+```tsx
+return { ...mod, useNavigate: () => mockNavigate }; // eslint-disable-line @eslint-react/hooks-extra/no-unnecessary-use-prefix
+```
+
+Or, if you prefer a block disable around just the mock:
+
+```tsx
+vi.mock('react-router-dom', async importOriginal => {
+  const mod = await importOriginal<typeof import('react-router-dom')>();
+  // eslint-disable-next-line @eslint-react/hooks-extra/no-unnecessary-use-prefix
+  return { ...mod, useNavigate: () => mockNavigate };
+});
+```
+
+You can't rename `useNavigate` to something else — it has to match the export name for the mock to work. Suppression is the correct fix here because the rule is a false positive: this isn't a hook definition, it's a mock override.
+
+---
+
+**User:** Tell me about this linter warning and the right way to handle it - 12:9  warning  Using 'dangerouslySetInnerHTML' may have security implications  @eslint-react/dom/no-dangerously-set-innerhtml
+
+**Claude:** _Tool call: Read — `/Users/kgreenman/git/kg-pokemon/packages/pokemon-ui/src/app/nx-welcome.tsx` (lines 1–20)_
+
+Output:
+```
+1  /*
+2   * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+3   This is a starter component and can be deleted.
+4   * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+5   Delete this file and get started with your project!
+6   * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+7   */
+8  export function NxWelcome({ title }: { title: string }) {
+9    return (
+10     <>
+11       <style
+12         dangerouslySetInnerHTML={{
+13           __html: `
+14     html {
+15       -webkit-text-size-adjust: 100%;
+...
+```
+
+The warning is legitimate — `dangerouslySetInnerHTML` bypasses React's XSS protections by injecting raw HTML. For a `<style>` tag with a static string it's actually safe, but the rule flags it categorically because the danger is real when the content comes from user input.
+
+The right way to handle it here is simpler: **just delete this file.** The comment on line 3 says exactly that — it's a scaffold artifact from `nx generate`. Nothing in your actual app uses `NxWelcome`.
+
+_Tool call: Bash — `grep -r "NxWelcome" /Users/kgreenman/git/kg-pokemon/packages/pokemon-ui/src --include="*.tsx" --include="*.ts" -l`_
+
+Output:
+```
+/Users/kgreenman/git/kg-pokemon/packages/pokemon-ui/src/app/nx-welcome.tsx
+```
+
+Nothing imports it — it's only defined, never used. Deleting `nx-welcome.tsx` eliminates the warning entirely and cleans up dead scaffold code.
+
+If you ever genuinely need to inject a `<style>` tag with static CSS, the correct alternative is Emotion's `Global` component (which you already have as a dependency):
+
+```tsx
+import { Global, css } from '@emotion/react';
+
+<Global styles={css`html { font-family: ...; }`} />
+```
+
+That's type-safe, scoped, and avoids raw HTML injection.
+
+---
+
+**User:** should i be concerned about this build warning: [plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+**Claude:** _Tool call: Bash — `nx build pokemon-ui 2>&1 | tail -30`_
+
+Output:
+```
+> nx run pokemon-ui:build  [existing outputs match the cache, left as is]
+
+> vite build
+
+vite v8.0.10 building client environment for production...
+✓ 11726 modules transformed.
+../../dist/packages/pokemon-ui/index.html                    0.40 kB │ gzip:   0.27 kB
+../../dist/packages/pokemon-ui/assets/index-DnVVYiet.js  507.07 kB │ gzip: 161.01 kB
+
+✓ built in 686ms
+
+(!) Some chunks are larger than 500 kB after minification.
+...
+```
+
+For this project, **no — don't worry about it.** Here's why:
+
+**The number that matters is gzip: 161 kB.** That's what actually transfers over the network. 507 kB is the uncompressed bundle size, which Vite flags against a 500 kB threshold, but that threshold is a rough heuristic, not a hard rule.
+
+**The culprit is MUI.** The build transformed 11,726 modules, which is almost entirely `@mui/icons-material` and `@mui/material`. That package is large. For an interview app this is fine — you're not optimizing for Lighthouse scores.
+
+**What you'd do in production to fix it:**
+
+1. **Import icons directly** (most impactful for MUI):
+   ```tsx
+   // Instead of:
+   import { Add } from '@mui/icons-material';
+   // Use:
+   import Add from '@mui/icons-material/Add';
+   ```
+   This avoids pulling in all 2,000+ icons even with tree-shaking.
+
+2. **Route-based code splitting** with `React.lazy` — split each page into its own chunk so users only load what they navigate to.
+
+3. **Raise the warning limit** if you just want the noise to stop without changing anything: set `build.chunkSizeWarningLimit: 600` in `vite.config.ts`.
+
+For an interview project, I'd raise the limit and move on. The 161 kB gzipped payload is perfectly reasonable.
+
+---
+
+**User:** lets update the chunksizewarning limit
+
+**Claude:** _Tool call: Read — `/Users/kgreenman/git/kg-pokemon/packages/pokemon-ui/vite.config.ts`_
+
+_Tool call: Edit — `/Users/kgreenman/git/kg-pokemon/packages/pokemon-ui/vite.config.ts` — added `chunkSizeWarningLimit: 600` to the `build` block_
+
+Added `chunkSizeWarningLimit: 600` to `vite.config.ts`. The build will no longer warn about the 507 kB chunk.
+
+---
+
+**User:** append this chat to the llm transcript
+
+**Claude:** Appended this session to LLM_TRANSCRIPT.md.
