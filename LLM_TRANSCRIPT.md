@@ -1503,3 +1503,66 @@ Committed.
 **User:** I have reviewed the spec, lets commit this and the llm transcript and push to github
 
 **Claude:** Appended transcript and pushed all commits to GitHub.
+
+---
+
+## Session — 2026-05-07
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** /superpowers:writing-plans write the implementation plan from the spec that has been created for the UI work
+
+**Claude:** I'm using the writing-plans skill to create the implementation plan.
+
+Read the following files to understand the project:
+- `docs/superpowers/specs/2026-05-07-pokemon-ui-design.md` — UI spec (React SPA with ProfileListPage, TeamBuilderPage, component tree, API shape, testing requirements)
+- `docs/superpowers/specs/2026-05-07-java-backend-design.md` — Backend spec (for API shape: Pokemon `{id, name}`, Profile `{id, name}`, ProfileDetail `{id, name, pokemon: Pokemon[]}`)
+- `packages/pokemon-ui/src/app/app.tsx` — current scaffold (NxWelcome placeholder)
+- `packages/pokemon-ui/vite.config.ts` — Vite config (no proxy yet)
+- `package.json` — existing deps (`@emotion/react`, `@emotion/styled`, `axios` already present; MUI and react-router-dom missing)
+
+Wrote and saved implementation plan to `docs/superpowers/plans/2026-05-07-pokemon-ui.md`.
+
+The plan covers 10 tasks:
+1. Install `@mui/material`, `@mui/icons-material`, `react-router-dom`; add `/api` proxy to `vite.config.ts`
+2. Define shared TypeScript types (`Pokemon`, `Profile`, `ProfileDetail`)
+3. Create the Axios API layer (`client.ts`, `pokemon.ts`, `profiles.ts`)
+4. `PokemonCard` component — TDD (sprite, name, count badge, click → onSelect, cap guard)
+5. `TeamRow` component — TDD (6 slots, filled/empty, onRemove by index)
+6. `PokemonGrid` component — TDD (renders all cards, propagates atCap)
+7. `NewProfileDialog` component — TDD (MUI Dialog, disabled Create when empty, calls onCreate, closes on success)
+8. `ProfileListPage` — TDD (renders profiles, opens dialog, appends on create, loading/error states)
+9. `TeamBuilderPage` — TDD (parallel fetch, seeds team, Save → updateTeam + navigate, Snackbar on failure, loading/error states)
+10. Wire up `App` with `BrowserRouter` + `Routes`; update `app.spec.tsx`
+
+Offered execution via subagent-driven (recommended) or inline execution.
+
+**User:** profile and profile_detail duplicate information, is there a reason to keep them separate?
+
+**Claude:** Good catch. The two types exist because they model two different API responses — `GET /api/profiles` returns `{id, name}[]` (no pokemon list), while `GET /api/profiles/:id` returns `{id, name, pokemon[]}`. Using a single type with `pokemon?: Pokemon[]` would be worse: `TeamBuilderPage` knows `pokemon` is always present after fetching the detail, but optional fields force null checks everywhere.
+
+The duplication is real though. The clean fix is `ProfileDetail extends Profile`:
+
+```ts
+export interface Profile {
+  id: number;
+  name: string;
+}
+
+export interface ProfileDetail extends Profile {
+  pokemon: Pokemon[];
+}
+```
+
+Same type safety, no repeated fields. Worth updating the plan if you agree.
+
+**User:** yes lets update it
+
+**Claude:** Updated `docs/superpowers/plans/2026-05-07-pokemon-ui.md` — Task 2 types now use `ProfileDetail extends Profile`.
+
+**User:** lets commit the plan and the llm transcript and push them to github
+
+**Claude:** Appended transcript, committed, and pushed.
