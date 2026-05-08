@@ -1378,3 +1378,128 @@ Ran tests → 26/26 pass.
 **Files changed:**
 - `packages/pokemon-user-backend-java/src/main/java/com/pokemon/userbackend/service/ProfileService.java` — inject `EntityManager`, replace `save()` with `lock(OPTIMISTIC_FORCE_INCREMENT)`
 - `packages/pokemon-user-backend-java/src/test/java/com/pokemon/userbackend/service/ProfileServiceTest.java` — add `EntityManager` mock, add version increment test
+
+---
+
+## Session — 2026-05-07
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** `/superpowers:brainstorming` — Lets start on the UI portion of this project. It should use the stack as described in the repo and build on top of the scaffold that already exists for the UI. The design should be functional but simple, do not add in extra features that have not been asked for. It should use MUI as the component library.
+
+**Claude:** Invoked the brainstorming skill. Created tasks for the full brainstorming process. Explored project context:
+- Frontend scaffold: bare React 19 + Emotion, just the Nx welcome screen at port 4200
+- Backend: Java Spring Boot on port 3000 with `/api` prefix — 5 endpoints fully implemented (list pokemon, list/create profiles, get profile with team, update team)
+- Sprites: derived from Pokemon ID (PokeAPI URL pattern), not stored
+- MUI: not yet installed
+
+Offered the visual companion for layout mockups.
+
+**User:** yes lets see the layouts
+
+**Claude:** Read the visual companion guide. Started the brainstorm server at `http://localhost:58226`. Added `.superpowers/` to `.gitignore`. Wrote `layout.html` showing three overall app layout options:
+- A: Split-panel (single page) — Pokemon grid left, team panel pinned right
+- B: Tabbed — Pokemon tab / My Team tab with bottom team count bar
+- C: Two views — Profile list home screen, click navigates to team builder
+
+Recommended C as it maps cleanly to the data model.
+
+**User:** lets go with option c
+
+**Claude:** Read browser events confirming option C selected. Wrote `team-builder-layout.html` showing three layouts for the team builder page:
+- A: Sticky team row (horizontal strip) pinned below app bar, full-width grid scrolls below
+- B: Side panel — team as fixed right column, grid fills left
+- C: Fixed bottom bar — full-width grid, team slots pinned at bottom
+
+Recommended B but noted A is clean if maximizing grid is preferred.
+
+**User:** lets go with option A
+
+**Claude:** Pushed `waiting.html` to clear browser. Asked clarifying question: how should creating a new profile work — dialog/modal or inline in the list?
+
+**User:** Dialog/modal
+
+**Claude:** Proposed three approaches for data fetching / state:
+- A: Local `useState` + `useEffect` with Axios (recommended — simple, no extra deps)
+- B: TanStack Query (useful but overkill)
+- C: Axios + context/Zustand (overkill for two independent views)
+
+Recommended A.
+
+**User:** yes A works
+
+**Claude:** Presented design section 1 — View routing: `App` holds `selectedProfileId: number | null`, no React Router, simple state swap between views.
+
+**User:** would this cause issues with extensibility if we wanted to add another page or feature? Or would this be easy enough to update later if that is needed?
+
+**Claude:** Explained that state-based routing works for exactly two views but doesn't scale — a third view means a discriminated union, no browser history, no deep-linking. Recommended switching to React Router now (minimal setup cost at this stage, ~30 min migration later). Two routes: `/` for profile list, `/profiles/:id` for team builder.
+
+**User:** lets switch to react router
+
+**Claude:** Presented design section 2 — Component tree:
+```
+App
+└── BrowserRouter
+    ├── Route /                → ProfileListPage
+    │     ├── MUI List (profiles)
+    │     └── NewProfileDialog
+    └── Route /profiles/:id   → TeamBuilderPage
+          ├── AppBar (back + profile name + Save)
+          ├── TeamRow (sticky — 6 slots)
+          └── PokemonGrid → PokemonCard × 150
+```
+
+**User:** yes that looks right
+
+**Claude:** Presented design section 3 — Data flow: parallel fetches on TeamBuilderPage mount, profile seeds `selectedPokemonIds`, card click toggles ID (capped at 6), Save calls PUT then navigates to `/`.
+
+**User:** yes that looks right
+
+**Claude:** Presented design section 4 — Loading & error handling: `CircularProgress` while loading, `Alert` on fetch error, `Snackbar` on save failure, reduced opacity on cards when at cap.
+
+**User:** yes that looks right
+
+**Claude:** Presented design section 5 — Testing: Vitest + RTL, mock Axios, key tests for `PokemonCard`, `TeamRow`, `ProfileListPage`, `TeamBuilderPage`. No E2E in scope.
+
+**User:** yes that looks right
+
+**Claude:** Wrote spec to `docs/superpowers/specs/2026-05-07-pokemon-ui-design.md` and committed. Ran self-review and found two issues:
+1. ProfileListPage showed "3 Pokémon" team size but `GET /api/profiles` only returns `{ id, name }[]` — team count not available. Removed it.
+2. Vite proxy not mentioned — frontend on 4200 needs to forward `/api` to backend on 3000. Added note.
+
+Committed fixes.
+
+**User:** Could we not calculate team size based on the size of the list in the profile response?
+
+**Claude:** Explained that `GET /api/profiles` only returns `{ id, name }[]` — no pokemon data. Getting team size would require N individual `GET /api/profiles/:id` calls after loading the list (N+1). Offered the choice: skip team count (name only) or show it with N+1 fetches.
+
+**User:** Skip it — name only (selected via question prompt)
+
+**Claude:** Confirmed spec is correct as written. Ready to proceed.
+
+**User:** The backend currently allows duplicate pokemon to be added to a team, how could we update this design to allow for that in the team selection page?
+
+**Claude:** Proposed separating add from remove:
+- Clicking a `PokemonCard` always appends (no toggle)
+- Removing done via TeamRow slot click (already in design)
+- Cards show a count badge (e.g. "×2") instead of boolean selected state
+- Cap enforcement unchanged — ignored at 6
+
+The underlying `selectedPokemonIds: number[]` state supports this without change.
+
+**User:** yes, update the spec
+
+**Claude:** Updated spec:
+- PokemonCard: click always appends; count badge shows copies on team; ignores clicks at cap
+- Data flow: `append` instead of `toggle`
+- Testing: updated to cover count badge
+- Out of scope: removed "duplicate detection" (now in-scope)
+
+Committed.
+
+**User:** I have reviewed the spec, lets commit this and the llm transcript and push to github
+
+**Claude:** Appended transcript and pushed all commits to GitHub.
