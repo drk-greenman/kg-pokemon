@@ -19,7 +19,7 @@ This is a take-home project. If it goes well, we'll invite you to a 1-hour pairi
 - React UI
 - Emotion CSS
 - Typescript
-- Node/NestJS Backend
+- Java 25 / Spring Boot 3.5 Backend
 - NX Monorepo
 - Github Actions CI
 - PostgreSQL Database
@@ -32,6 +32,7 @@ This is a take-home project. If it goes well, we'll invite you to a 1-hour pairi
 - [nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) with Kubernetes enabled
 - [Tilt](https://docs.tilt.dev/install.html) (`brew install tilt` on macOS)
+- [Java 25 JDK](https://adoptium.net/) (`brew install --cask temurin@25` on macOS)
 
 ## Getting Started
 

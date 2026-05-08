@@ -8,21 +8,21 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "mvn package -q -DskipTests",
+        "command": "./mvnw package -q -DskipTests",
         "cwd": "packages/pokemon-user-backend-java"
       }
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "mvn test",
+        "command": "./mvnw test",
         "cwd": "packages/pokemon-user-backend-java"
       }
     },
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "mvn spring-boot:run",
+        "command": "./mvnw spring-boot:run",
         "cwd": "packages/pokemon-user-backend-java"
       }
     }
