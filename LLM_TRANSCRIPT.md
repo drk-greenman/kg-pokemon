@@ -2898,3 +2898,72 @@ Fast-forwarded main to `d76f36f`, pulling in the merged PR changes. Noted two lo
 **User:** ammend the LLM_transcript and commit and push
 
 **Claude:** Read the transcript, appended this session, committed, and pushed.
+
+---
+
+## Session — 2026-05-08
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** /superpowers:brainstorming lets finish up the last bit of the project which is hooking up and fleshing out the ui e2e tests to cover the application functionality
+
+**Claude:** Invoked the brainstorming skill and created tasks for the full brainstorming checklist. Explored the project context: read the existing placeholder spec (`packages/pokemon-ui-e2e/src/example.spec.ts`), `playwright.config.ts`, all UI source files (`app.tsx`, `ProfileListPage.tsx`, `TeamBuilderPage.tsx`, `NewProfileDialog.tsx`, `PokemonGrid.tsx`, `TeamRow.tsx`, `PokemonCard.tsx`, `types/index.ts`), the Java backend controllers, and the backend E2E test suite for reference.
+
+Key findings:
+- The app has two pages: `ProfileListPage` (`/`) and `TeamBuilderPage` (`/profiles/:id`)
+- The only existing E2E test is a single placeholder checking for an h1 "Welcome" (which doesn't match the actual app)
+- The backend E2E tests use a `globalSetup` that truncates via direct Postgres connection
+- `pg` is a root workspace dependency
+
+Asked clarifying questions one at a time:
+1. All 3 browsers (Chromium, Firefox, WebKit)? → Yes, all 3
+2. Live full stack vs mocked API? → Live full stack
+3. Discussed global truncation vs per-test isolation trade-offs → Global truncation chosen
+4. Reset mechanism (API endpoint vs direct DB)? → Direct DB connection
+
+Proposed 3 approaches for test file organization:
+- Option A: Single spec file, story-ordered
+- Option B: One spec file per page with independent `beforeAll` setups (recommended)
+- Option C: One spec file per user story (overkill for this app size)
+
+User chose Option B.
+
+Presented design in 3 sections and iterated with user feedback:
+
+**Section 1 — Infrastructure:** `globalSetup` truncates via `pg`, `globalTeardown` is a no-op (matching backend E2E pattern). `playwright.config.ts` adds `globalSetup`/`globalTeardown` fields only.
+
+**Section 2 — `profile-list.spec.ts`** (7 tests):
+1. App bar shows "Pokémon Team Builder"
+2. Shows "+ New Profile" button when list is empty
+3. Opens the new profile dialog
+4. Create button disabled until name is typed
+5. Creating a profile closes dialog and adds it to the list
+6. Creating a second profile adds it to the already-populated list (added at user's suggestion)
+7. Clicking a profile row navigates to `/profiles/:id`
+
+**Section 3 — `team-builder.spec.ts`** (12 tests, `beforeAll` creates profile via API):
+1. App bar shows the profile name
+2. Pokemon grid loads all 150 Pokemon
+3. Selecting a Pokemon adds it to the team row
+4. Selecting a second Pokemon fills a second slot
+5. Adding the same Pokemon twice fills two slots and shows ×2 badge (added at user's suggestion)
+6. Clicking a filled slot removes the Pokemon
+7. Grid cards become visually disabled at 6 selections
+8. Clicking a card at cap does not add a 7th
+9. Saving a partial team navigates back to `/` (added at user's suggestion)
+10. Saved partial team persists when navigating back
+11. Saving a full team navigates back to `/`
+12. Saved full team persists when navigating back
+
+Wrote spec to `docs/superpowers/specs/2026-05-08-ui-e2e-design.md` and committed. During self-review, verified that `pg`'s exact truncation query matches the backend E2E (`TRUNCATE profile_pokemon, profile RESTART IDENTITY CASCADE`).
+
+**User:** Will these tests (and the backend tests) end up leaving data in the database permanently?
+
+**Claude:** Checked the backend E2E `global-teardown.ts` — it is a no-op and does not truncate. Explained that test data persists after each run and is only cleaned up at the *start* of the next run (by `globalSetup`). This is intentional — it allows inspecting state after a failure. Updated the spec to accurately describe the `globalTeardown` as a no-op and committed the correction.
+
+**User:** looks good. commit this and append the llm logs and then push it
+
+**Claude:** Appended this session to `LLM_TRANSCRIPT.md`, committed, and pushed.
