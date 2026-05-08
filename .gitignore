@@ -40,7 +40,6 @@ testem.log
 Thumbs.db
 
 # Build output
-/target
-*/target
+**/target
 
 .nx/
