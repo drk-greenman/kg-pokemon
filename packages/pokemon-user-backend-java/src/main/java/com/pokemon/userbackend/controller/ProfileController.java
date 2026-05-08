@@ -43,7 +43,7 @@ public class ProfileController {
     }
 
     @PutMapping("/{id}/team")
-    public ProfileDto updateTeam(@PathVariable Integer id, @RequestBody UpdateTeamRequest request) {
+    public ProfileDto updateTeam(@PathVariable Integer id, @Valid @RequestBody UpdateTeamRequest request) {
         return profileService.updateTeam(id, request.pokemonIds());
     }
 }

@@ -43,9 +43,9 @@ public class ProfileService {
     }
 
     public ProfileDto create(CreateProfileRequest request) {
-        var profile = new Profile();
+        Profile profile = new Profile();
         profile.setName(request.name());
-        var saved = profileRepository.save(profile);
+        Profile saved = profileRepository.save(profile);
         return profileMapper.toDto(saved);
     }
 
@@ -80,7 +80,7 @@ public class ProfileService {
 
         List<ProfilePokemon> team = pokemonIds.stream()
                 .map(id -> {
-                    var pp = new ProfilePokemon();
+                    ProfilePokemon pp = new ProfilePokemon();
                     pp.setProfile(profile);
                     pp.setPokemon(pokemonById.get(id));
                     return pp;

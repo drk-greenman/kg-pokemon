@@ -1211,3 +1211,130 @@ Invoked `superpowers:finishing-a-development-branch` skill. Tests verified (25/0
 **User:** push the transcript update to the PR
 
 **Claude:** Appended this exchange to LLM_TRANSCRIPT.md, committed, and pushed to `feat/java-backend-api`.
+
+---
+
+## Session — 2026-05-07 (code review)
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** You are doing a code review of PR #2 in the kg-pokemon repo at /Users/kgreenman/git/kg-pokemon.
+
+PR Summary: Implements a Java Spring Boot backend REST API in packages/pokemon-user-backend-java/. Adds Spring Data JPA, Flyway migrations, controllers, services, DTOs, mappers, domain exceptions, and global error handler. 1633 additions.
+
+Your job: Read the git blame and history of the files modified in PR #2 to identify any bugs in light of historical context.
+
+Steps:
+1. Run `gh pr diff 2 --name-only` to get the list of changed files
+2. For the Java source files, run `git log --oneline -- <file>` to see their history
+3. For any files with interesting history, run `git log -p --follow -- <file>` to see what changed
+
+Look for: decisions made in prior commits that the PR might be contradicting, patterns established historically that the PR breaks, or context from commit messages that suggests the current approach might be wrong.
+
+Return a list of issues found with historical context. If none, say so.
+
+**Claude:** [Ran `gh pr diff 2 --name-only` to enumerate changed files, then reviewed git history for all Java source files, the design spec (`docs/superpowers/specs/2026-05-07-java-backend-design.md`), the spec change history (commit `784ef76` removing builder pattern, commit `1af5f9f` adding initial spec), application.properties history, entity/service/controller/mapper/exception history across commits `580ff80` through `af7891d`. Read current state of ProfileService.java, GlobalExceptionHandler.java, ProfileController.java, ProfileMapper.java, UpdateTeamRequest.java, Profile.java, V3__create_profile_pokemon.sql.]
+
+Found the following issues:
+
+**Issue 1 (Bug — Critical): Optimistic locking is broken — `@Version` never increments on `updateTeam`**
+
+Historical context: Commit `1af5f9f` (spec) explicitly states: "saves Profile (triggering the version check), all within a single `@Transactional` method." This was the precise stated intent. The implementation calls `profileRepository.save(profile)` after deleting/reinserting `ProfilePokemon` rows — but the `Profile` entity has no changed fields and no `@OneToMany` back to `ProfilePokemon`. Hibernate's dirty-tracking never marks `Profile` as modified, so `save()` / `merge()` issues no SQL UPDATE, the `WHERE version = ?` clause never runs, the version column never increments, and concurrent `PUT /team` requests both succeed silently instead of one returning 409.
+
+Fix: Dirty the entity before saving — e.g. `profile.setVersion(profile.getVersion() + 1)` and let Hibernate enforce the WHERE version check, or use a `@Modifying` JPQL update query.
+
+**Issue 2 (Bug — High): `NullPointerException` when `pokemonIds` is absent from the request body**
+
+`UpdateTeamRequest` has no `@NotNull` on `pokemonIds`, and `updateTeam` in `ProfileController` has no `@Valid` annotation (unlike `createProfile` which does have `@Valid`). If a client sends `{}` or `{"pokemonIds": null}`, `pokemonIds.size()` at line 61 of `ProfileService` throws `NullPointerException`, which falls through to a 500 error rather than being caught by `GlobalExceptionHandler`.
+
+Historical pattern: `CreateProfileRequest` (commit `e88e63f`) uses `@NotBlank` and `createProfile` uses `@Valid` — `UpdateTeamRequest` was added in the same commit but omits both.
+
+Fix: Add `@NotNull` to `pokemonIds` in `UpdateTeamRequest`; add `@Valid` to the `@RequestBody` in `ProfileController.updateTeam`.
+
+**Issue 3 (Inconsistency — Low): Deduplication is applied for validation but not for persistence**
+
+The service calls `.distinct()` to build `uniqueIds` for the existence check, but then iterates the original `pokemonIds` list (with duplicates) to build the `team` to persist. So `[1, 1, 4]` passes validation (IDs 1 and 4 exist) but inserts two `profile_pokemon` rows for Pokémon 1. The spec explicitly declares duplicates "allowed for now," so this is not a correctness violation against the spec, but the `.distinct()` call in validation creates a false impression of duplicate handling.
+
+**Issue 4 (Minor / Informational): `OptimisticLockingFailureException` vs `OptimisticLockException` — spec vs code**
+
+The spec error table at commit `1af5f9f` named `OptimisticLockException` (JPA native). The implementation catches `org.springframework.dao.OptimisticLockingFailureException` (Spring's translation). This is actually correct behavior — Spring's `PersistenceExceptionTranslationPostProcessor` wraps JPA's exception into Spring's before it reaches the controller — but the spec's class name was imprecise. No code change needed.
+
+---
+
+## Session — 2026-05-07
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** /code-review:code-review review PR #2
+
+**Claude:** Invoked the `code-review:code-review` skill to review PR #2.
+
+Created task list:
+1. Check PR #2 eligibility
+2. Find relevant CLAUDE.md files
+3. Summarize PR #2 changes
+4. Run 5 parallel code review agents
+5. Score and filter issues
+6. Post code review comment on PR #2
+
+**Step 1-3 (parallel Haiku agents):**
+
+- Eligibility check: PR #2 is OPEN, not a draft, no prior reviews — eligible. Substantial feature PR: 1633 additions implementing full Java Spring Boot backend.
+- CLAUDE.md files: Only root `/CLAUDE.md` is relevant. No CLAUDE.md in `packages/pokemon-user-backend-java/`.
+- PR summary: Implements complete Java Spring Boot REST API with Spring Data JPA, Flyway migrations, Pokemon/Profile controllers, services, DTOs, mappers, domain exceptions, global error handler, and 25 unit tests. 5 endpoints: GET /api/pokemon, GET /api/profiles, POST /api/profiles, GET /api/profiles/{id}, PUT /api/profiles/{id}/team. Optimistic locking on Profile. 1633 additions.
+
+**Step 4 (5 parallel Sonnet review agents):**
+
+Agent #1 (CLAUDE.md audit): Found tech stack mismatch — CLAUDE.md specifies NestJS/MikroORM/Vitest/Nx but PR adds Java/Spring Boot/JPA/Flyway/Maven. Noted this may be intentional parallel implementation.
+
+Agent #2 (Bug scan): Found 3 bugs:
+1. `updateTeam` optimistic lock never fires — Profile entity not dirty, Hibernate won't issue UPDATE, @Version never increments
+2. Duplicates silently persist — size check before dedup allows `[1,1,1,1,1,1]` to insert 6 duplicate rows  
+3. `findAll()` always returns empty team — single-arg `toDto` always produces `pokemon: []`
+
+Agent #3 (Git history): Found:
+1. Optimistic locking never fires (confirmed via design spec commit `1af5f9f`)
+2. NPE on null pokemonIds — missing @Valid on controller, missing @NotNull on field
+3. Deduplication split (spec-allowed, informational)
+
+Agent #4 (Past PRs): Both issues from PR #1 review had been fixed. No carryover issues.
+
+Agent #5 (Code comments): Identified spec/annotation discrepancies (low severity, impl is correct), and noted `GET /api/profiles` response shape diverges from spec (`pokemon: []` vs omitted field).
+
+**Step 5 (Confidence scoring, parallel Haiku agents):**
+
+| Issue | Score |
+|---|---|
+| CLAUDE.md tech stack mismatch | 25 |
+| Optimistic locking never fires | 75 |
+| Duplicates silently persist | 0 (spec allows) |
+| NPE on null pokemonIds | 100 |
+| findAll() always empty team | 50 |
+
+**Step 6:** Filtered to issues scoring ≥ 80. Only NPE on null pokemonIds (score 100) passed.
+
+**Step 7:** Re-checked eligibility — PR still open, not draft, no reviews. Eligible.
+
+**Step 8:** Posted review comment to PR #2:
+
+```
+### Code review
+
+Found 1 issue:
+
+1. Missing `@Valid` on the controller and `@NotNull` on `pokemonIds` allows a null request body field to cause a 500
+
+`updateTeam()` in `ProfileController` lacks `@Valid` on its `@RequestBody` parameter, and `UpdateTeamRequest.pokemonIds` has no `@NotNull` (or `@NotEmpty`) annotation. Sending `{"pokemonIds": null}` or `{}` causes `pokemonIds.size()` in `ProfileService` to throw a `NullPointerException`. `GlobalExceptionHandler` does not handle `NullPointerException`, so the client receives a 500 Internal Server Error instead of a 400 Bad Request. Note that `createProfile()` in the same controller correctly uses `@Valid` — this pattern should be applied consistently.
+
+https://github.com/drk-greenman/kg-pokemon/blob/e4bc893ae9e97da799380bde1670279944e1badc/packages/pokemon-user-backend-java/src/main/java/com/pokemon/userbackend/controller/ProfileController.java#L45-L48
+
+https://github.com/drk-greenman/kg-pokemon/blob/e4bc893ae9e97da799380bde1670279944e1badc/packages/pokemon-user-backend-java/src/main/java/com/pokemon/userbackend/dto/UpdateTeamRequest.java#L4-L6
+```
+
+Comment URL: https://github.com/drk-greenman/kg-pokemon/pull/2#issuecomment-4401464603
