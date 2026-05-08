@@ -2967,3 +2967,51 @@ Wrote spec to `docs/superpowers/specs/2026-05-08-ui-e2e-design.md` and committed
 **User:** looks good. commit this and append the llm logs and then push it
 
 **Claude:** Appended this session to `LLM_TRANSCRIPT.md`, committed, and pushed.
+
+---
+
+## Session — 2026-05-08
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** lets create the implementation plan for the ui e2d design
+
+**Claude:** Using the writing-plans skill to create the implementation plan.
+
+Read the following files to gather context:
+- `docs/superpowers/specs/2026-05-08-ui-e2e-design.md` — the UI E2E spec
+- `packages/pokemon-ui-e2e/playwright.config.ts` — current Playwright config
+- `packages/pokemon-ui-e2e/src/example.spec.ts` — placeholder spec to be replaced
+- `packages/pokemon-ui-e2e/tsconfig.json` and `project.json`
+- `packages/pokemon-user-backend-e2e/src/support/global-setup.ts` — reference pattern
+- `packages/pokemon-user-backend-e2e/src/support/global-teardown.ts` — reference pattern
+- `packages/pokemon-ui/src/app/pages/ProfileListPage.tsx` — actual component code
+- `packages/pokemon-ui/src/app/pages/TeamBuilderPage.tsx`
+- `packages/pokemon-ui/src/app/components/PokemonCard.tsx`
+- `packages/pokemon-ui/src/app/components/TeamRow.tsx`
+- `packages/pokemon-ui/src/app/components/PokemonGrid.tsx`
+- `packages/pokemon-ui/src/app/components/NewProfileDialog.tsx`
+- `packages/pokemon-ui/src/app/types/index.ts`
+- `packages/pokemon-ui/src/app/app.tsx`
+- `packages/pokemon-user-backend-e2e/src/pokemon-user-backend/profiles.spec.ts` — reference for test structure
+- root `package.json` for Playwright version (@playwright/test ^1.59.1)
+
+Wrote implementation plan to `docs/superpowers/plans/2026-05-08-ui-e2e-tests.md`.
+
+The plan covers 5 tasks:
+1. DB infrastructure: `global-setup.ts` (truncate DB), `global-teardown.ts` (no-op), and `playwright.config.ts` wiring
+2. Remove `example.spec.ts`
+3. `profile-list.spec.ts` — 7 tests covering empty state, dialog, profile creation, and navigation
+4. `team-builder.spec.ts` — 12 tests covering grid load, slot management, at-cap behavior, save/reload round trips
+5. Full suite run via `nx e2e pokemon-ui-e2e`
+
+Key locator decisions documented:
+- PokemonCard buttons are clicked via `getByRole('img', { name: pokemonName }).click()` (avoids double-name accessible name issue)
+- TeamRow filled slots are found via `getByRole('img', { name: 'Slot N' })`
+- `atCap` opacity checked with `toHaveCSS('opacity', '0.4')`
+- `beforeAll` in team-builder uses `request.newContext()` to create the test profile via the live API
+
+Offered execution choice: subagent-driven (recommended) or inline.
