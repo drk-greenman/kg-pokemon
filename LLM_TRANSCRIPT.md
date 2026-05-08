@@ -1338,3 +1338,43 @@ https://github.com/drk-greenman/kg-pokemon/blob/e4bc893ae9e97da799380bde16702799
 ```
 
 Comment URL: https://github.com/drk-greenman/kg-pokemon/pull/2#issuecomment-4401464603
+
+---
+
+## Session — 2026-05-07
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** It appears that the profile version is not actually being updated when we add/remove pokemon, lets fix this to ensure we are correctly implementing the optimistic locking
+
+**Claude:** Used the `superpowers:systematic-debugging` skill and `superpowers:test-driven-development` skill.
+
+**Root Cause Investigation (Phase 1):**
+
+Read `ProfileService.java`, `Profile.java`, `ProfilePokemon.java`, `ProfileRepository.java`, `ProfilePokemonRepository.java`, and `ProfileServiceTest.java`.
+
+**Root cause identified:** JPA's `@Version` mechanism only auto-increments when Hibernate issues an actual `UPDATE` SQL statement on the entity. In `updateTeam`, only `ProfilePokemon` rows are deleted/inserted — the `Profile` entity's own fields (id, name, version) never change. So when `profileRepository.save(profile)` is called, Hibernate sees the entity as clean/unmodified and skips the UPDATE entirely. The version column stays unchanged.
+
+**Fix:** `LockModeType.OPTIMISTIC_FORCE_INCREMENT` — the JPA-standard way to force a version increment at transaction commit even when no scalar fields changed. This also correctly enforces optimistic locking: two concurrent `updateTeam` calls on the same profile will detect the conflict via `OptimisticLockException`.
+
+**TDD Cycle:**
+
+RED — Updated `ProfileServiceTest` to:
+- Add `@Mock EntityManager entityManager`
+- Pass it to the `ProfileService` constructor in `setUp`
+- Add new test `updateTeam_forceIncrementsProfileVersionForOptimisticLocking` that verifies `entityManager.lock(ash, LockModeType.OPTIMISTIC_FORCE_INCREMENT)` is called
+
+Ran tests → compilation failure (constructor mismatch) — failing for the right reason.
+
+GREEN — Updated `ProfileService`:
+- Added `EntityManager entityManager` constructor parameter
+- Replaced `profileRepository.save(profile)` with `entityManager.lock(profile, LockModeType.OPTIMISTIC_FORCE_INCREMENT)`
+
+Ran tests → 26/26 pass.
+
+**Files changed:**
+- `packages/pokemon-user-backend-java/src/main/java/com/pokemon/userbackend/service/ProfileService.java` — inject `EntityManager`, replace `save()` with `lock(OPTIMISTIC_FORCE_INCREMENT)`
+- `packages/pokemon-user-backend-java/src/test/java/com/pokemon/userbackend/service/ProfileServiceTest.java` — add `EntityManager` mock, add version increment test

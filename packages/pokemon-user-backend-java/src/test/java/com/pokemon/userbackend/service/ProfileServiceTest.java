@@ -7,6 +7,8 @@ import com.pokemon.userbackend.mapper.ProfileMapper;
 import com.pokemon.userbackend.repository.PokemonRepository;
 import com.pokemon.userbackend.repository.ProfilePokemonRepository;
 import com.pokemon.userbackend.repository.ProfileRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,6 +19,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,6 +31,8 @@ class ProfileServiceTest {
     private PokemonRepository pokemonRepository;
     @Mock
     private ProfilePokemonRepository profilePokemonRepository;
+    @Mock
+    private EntityManager entityManager;
 
     private ProfileService profileService;
 
@@ -35,7 +40,7 @@ class ProfileServiceTest {
     void setUp() {
         var profileMapper = new ProfileMapper(new PokemonMapper());
         profileService = new ProfileService(
-                profileRepository, pokemonRepository, profilePokemonRepository, profileMapper);
+                profileRepository, pokemonRepository, profilePokemonRepository, profileMapper, entityManager);
     }
 
     @Test
@@ -140,6 +145,24 @@ class ProfileServiceTest {
         assertThat(result.pokemon().get(0).id()).isEqualTo(1);
         assertThat(result.pokemon().get(0).name()).isEqualTo("bulbasaur");
 
-        org.mockito.Mockito.verify(profilePokemonRepository).deleteByProfile(ash);
+        verify(profilePokemonRepository).deleteByProfile(ash);
+    }
+
+    @Test
+    void updateTeam_forceIncrementsProfileVersionForOptimisticLocking() {
+        var ash = new Profile();
+        ash.setId(1);
+        ash.setName("ash");
+        var bulbasaur = new com.pokemon.userbackend.entity.Pokemon();
+        bulbasaur.setId(1);
+        bulbasaur.setName("bulbasaur");
+
+        when(profileRepository.findById(1)).thenReturn(java.util.Optional.of(ash));
+        when(pokemonRepository.findAllById(List.of(1))).thenReturn(List.of(bulbasaur));
+        when(profilePokemonRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        profileService.updateTeam(1, List.of(1));
+
+        verify(entityManager).lock(ash, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
     }
 }

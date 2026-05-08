@@ -11,6 +11,8 @@ import com.pokemon.userbackend.mapper.ProfileMapper;
 import com.pokemon.userbackend.repository.PokemonRepository;
 import com.pokemon.userbackend.repository.ProfilePokemonRepository;
 import com.pokemon.userbackend.repository.ProfileRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,15 +27,18 @@ public class ProfileService {
     private final PokemonRepository pokemonRepository;
     private final ProfilePokemonRepository profilePokemonRepository;
     private final ProfileMapper profileMapper;
+    private final EntityManager entityManager;
 
     public ProfileService(ProfileRepository profileRepository,
                           PokemonRepository pokemonRepository,
                           ProfilePokemonRepository profilePokemonRepository,
-                          ProfileMapper profileMapper) {
+                          ProfileMapper profileMapper,
+                          EntityManager entityManager) {
         this.profileRepository = profileRepository;
         this.pokemonRepository = pokemonRepository;
         this.profilePokemonRepository = profilePokemonRepository;
         this.profileMapper = profileMapper;
+        this.entityManager = entityManager;
     }
 
     public List<ProfileDto> findAll() {
@@ -88,7 +93,9 @@ public class ProfileService {
                 .toList();
         List<ProfilePokemon> savedTeam = profilePokemonRepository.saveAll(team);
 
-        profileRepository.save(profile);
+        // Profile's own fields didn't change, but the team did — force-increment the version so
+        // concurrent updateTeam calls on the same profile detect the conflict via optimistic locking.
+        entityManager.lock(profile, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
 
         return profileMapper.toDto(profile, savedTeam);
     }
