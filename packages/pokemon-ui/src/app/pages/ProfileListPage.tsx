@@ -16,6 +16,7 @@ import { ChevronRight } from '@mui/icons-material';
 import { css } from '@emotion/react';
 import { NewProfileDialog } from '../components/NewProfileDialog';
 import { getProfiles, createProfile } from '../api/profiles';
+import { getErrorMessage } from '../utils/errors';
 import type { Profile } from '../types';
 
 export function ProfileListPage() {
@@ -28,7 +29,7 @@ export function ProfileListPage() {
   useEffect(() => {
     getProfiles()
       .then(setProfiles)
-      .catch(err => setError(err.message ?? 'Unknown error'))
+      .catch(err => setError(getErrorMessage(err)))
       .finally(() => setLoading(false));
   }, []);
 

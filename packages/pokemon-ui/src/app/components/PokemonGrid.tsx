@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { css } from '@emotion/react';
 import { PokemonCard } from './PokemonCard';
 import type { Pokemon } from '../types';
@@ -11,10 +12,14 @@ interface Props {
 export function PokemonGrid({ pokemon, selectedPokemonIds, onSelect }: Props) {
   const atCap = selectedPokemonIds.length >= 6;
 
-  const countMap = selectedPokemonIds.reduce<Record<number, number>>((acc, id) => {
-    acc[id] = (acc[id] ?? 0) + 1;
-    return acc;
-  }, {});
+  const countMap = useMemo(
+    () =>
+      selectedPokemonIds.reduce<Record<number, number>>((acc, id) => {
+        acc[id] = (acc[id] ?? 0) + 1;
+        return acc;
+      }, {}),
+    [selectedPokemonIds]
+  );
 
   return (
     <div

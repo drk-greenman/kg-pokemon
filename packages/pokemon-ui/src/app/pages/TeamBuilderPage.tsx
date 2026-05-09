@@ -16,6 +16,7 @@ import { TeamRow } from '../components/TeamRow';
 import { PokemonGrid } from '../components/PokemonGrid';
 import { getPokemons } from '../api/pokemon';
 import { getProfile, updateTeam } from '../api/profiles';
+import { getErrorMessage } from '../utils/errors';
 import type { Pokemon } from '../types';
 
 export function TeamBuilderPage() {
@@ -37,7 +38,7 @@ export function TeamBuilderPage() {
         setProfileName(profile.name);
         setSelectedPokemonIds(profile.pokemon.map(p => p.id));
       })
-      .catch(err => setError(err.message ?? 'Unknown error'))
+      .catch(err => setError(getErrorMessage(err)))
       .finally(() => setLoading(false));
   }, [profileId]);
 
@@ -54,8 +55,7 @@ export function TeamBuilderPage() {
       await updateTeam(profileId, selectedPokemonIds);
       navigate('/');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      setSaveError(`Failed to save team — ${msg}`);
+      setSaveError(`Failed to save team — ${getErrorMessage(err)}`);
     }
   };
 

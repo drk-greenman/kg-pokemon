@@ -3312,3 +3312,136 @@ Summary of what changed:
 **User:** append the llm transcript with this conversation
 
 **Claude:** Appended transcript to `LLM_TRANSCRIPT.md`.
+
+---
+
+## Session — 2026-05-09
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** You are doing a code quality review of the entire Pokemon Team Builder codebase. Your job is to find hacky patterns:
+1. Redundant state duplicating existing state
+2. Parameter sprawl
+3. Copy-paste with slight variation
+4. Leaky abstractions
+5. Stringly-typed code
+6. Unnecessary JSX nesting
+7. Nested conditionals (ternary chains, nested if/else 3+ deep)
+8. Unnecessary comments (explaining WHAT, narrating the change, referencing tasks/callers) — keep only non-obvious WHY
+
+Do NOT fix anything — just report findings. Be specific: file + line number + issue.
+
+[full codebase provided inline]
+
+**Claude:** [read all source files, then reported:]
+
+## Code Quality Review Findings
+
+### 1. Copy-Paste with Slight Variation — `SPRITE_BASE` constant duplicated
+
+**`packages/pokemon-ui/src/app/components/PokemonCard.tsx` line 4**
+**`packages/pokemon-ui/src/app/components/TeamRow.tsx` line 4**
+
+The identical string `'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon'` is defined as `SPRITE_BASE` independently in both files. This belongs in a shared constants file and imported by both.
+
+---
+
+### 2. Redundant State — `profileName` duplicates fetched data
+
+**`packages/pokemon-ui/src/app/pages/TeamBuilderPage.tsx` lines 27, 37**
+
+`profileName` is extracted from the `profile` response and stored as a separate string. The full profile is discarded after extraction. Storing the full profile in state instead would eliminate this redundant state variable and its setter.
+
+---
+
+### 3. Leaky Abstraction / Parameter Sprawl — `PokemonCard` receives computed derivatives of selection state
+
+**`packages/pokemon-ui/src/app/components/PokemonGrid.tsx` lines 12–16, 29–34**
+**`packages/pokemon-ui/src/app/components/PokemonCard.tsx` interface lines 7–12**
+
+`PokemonGrid` derives `atCap` and `countMap` from `selectedPokemonIds`, then passes `count` and `atCap` as separate props into each `PokemonCard`. `PokemonCard`'s interface leaks the selection system's computed shape. Props should be named for what they mean to the card (`disabled`, `selected`) rather than why they exist.
+
+---
+
+### 4. Unnecessary Comment — narrates what the code already says
+
+**`packages/pokemon-user-backend-java/src/main/java/com/pokemon/userbackend/exception/GlobalExceptionHandler.java` line 45**
+
+```java
+log.error("Unhandled exception", ex);  // log the full stack trace
+```
+
+"log the full stack trace" is what `log.error(msg, ex)` always does when a `Throwable` is the second argument. The comment explains what, not why.
+
+---
+
+### 5. Stringly-typed — `"Unknown error"` repeated in three places with two different extraction patterns
+
+**`packages/pokemon-ui/src/app/pages/ProfileListPage.tsx` line 31**
+**`packages/pokemon-ui/src/app/pages/TeamBuilderPage.tsx` line 40**
+**`packages/pokemon-ui/src/app/components/NewProfileDialog.tsx` line 31**
+
+`'Unknown error'` appears verbatim three times across three files. There are also two different patterns for extracting the message (`err.message ?? 'Unknown error'` vs `err instanceof Error ? err.message : 'Unknown error'`), with the first being unsafe. Both the string and the extraction logic should be consolidated into a shared `getErrorMessage(err: unknown): string` utility.
+
+---
+
+### 6. Nested Conditional — inline handler guard plus render ternary in `TeamRow`
+
+**`packages/pokemon-ui/src/app/components/TeamRow.tsx` lines 28–70**
+
+The click handler buries a conditional (`if (filled) onRemove(i)`) inside an inline arrow, and the render body has a ternary between `<Avatar>` and `<span>`. The slot button has two responsibilities. Extracting a `<TeamSlot>` component would eliminate both.
+
+---
+
+### 7. Copy-Paste — loading/error rendering pattern duplicated across both pages
+
+**`packages/pokemon-ui/src/app/pages/ProfileListPage.tsx` lines 48–80**
+**`packages/pokemon-ui/src/app/pages/TeamBuilderPage.tsx` lines 78–99**
+
+Both pages have an identical three-branch rendering structure with the same spinner container CSS and error alert CSS. Should be extracted into a shared `<AsyncContent loading={loading} error={error}>` wrapper component.
+
+---
+
+## Session — 2026-05-09
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** `/simplify run this on the entire code base and create a branch for any changes necessary`
+
+**Claude:** Read all source files across `pokemon-ui` and `pokemon-user-backend-java`, created branch `simplify/codebase-cleanup`, then launched three parallel review agents (code reuse, code quality, efficiency). Implemented the following fixes:
+
+**Frontend (`pokemon-ui`):**
+- Created `src/app/constants.ts` exporting `SPRITE_BASE` — was duplicated identically in `PokemonCard.tsx` and `TeamRow.tsx`
+- Created `src/app/utils/errors.ts` with `getErrorMessage(err: unknown): string` — consolidated two inconsistent patterns (`err.message ?? 'Unknown error'` and `err instanceof Error ? err.message : 'Unknown error'`) used across `ProfileListPage`, `TeamBuilderPage`, and `NewProfileDialog`
+- Updated `PokemonCard.tsx` and `TeamRow.tsx` to import `SPRITE_BASE` from constants
+- Updated both pages and `NewProfileDialog` to use `getErrorMessage()`
+- Fixed `NewProfileDialog` bug: stale error message was shown when dialog was closed after a failure and reopened — replaced a `useEffect`-based reset (which triggered a lint warning) with a `handleClose` wrapper that resets `name` and `error` on close
+- Wrapped `countMap` reduce in `PokemonGrid.tsx` with `useMemo([selectedPokemonIds])` to avoid recomputation on unrelated parent re-renders
+
+**Backend (`pokemon-user-backend-java`):**
+- Changed `foundIds` in `ProfileService.resolvePokemon` from `List<Integer>` to `Set<Integer>` to make the missing-ID filter O(n) instead of O(n·m)
+- Replaced derived `deleteByProfile` in `ProfilePokemonRepository` with a `@Modifying @Query("DELETE FROM ProfilePokemon pp WHERE pp.profile = :profile")` — eliminates Hibernate's implicit SELECT-then-N-DELETE behavior
+- Added Flyway migration `V5__add_profile_pokemon_index.sql`: `CREATE INDEX idx_profile_pokemon_profile_id ON profile_pokemon(profile_id)` — PostgreSQL does not auto-index FK referencing columns
+
+All 29 frontend unit tests passed, lint was clean (zero warnings after switching from `useEffect` to `handleClose`), and all Java backend unit tests passed.
+
+---
+
+**User:** `create a PR with the changes`
+
+**Claude:** Staged and committed all changes to branch `simplify/codebase-cleanup`, pushed to remote, and created PR #7:
+
+- Commit: `refactor: simplify and deduplicate across frontend and backend`
+- PR URL: https://github.com/drk-greenman/kg-pokemon/pull/7
+
+---
+
+**User:** `ensure the llm transcript is up to date`
+
+**Claude:** Appended this session to `LLM_TRANSCRIPT.md`.

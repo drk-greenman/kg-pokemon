@@ -8,6 +8,7 @@ import {
   DialogTitle,
   TextField,
 } from '@mui/material';
+import { getErrorMessage } from '../utils/errors';
 
 interface Props {
   open: boolean;
@@ -20,22 +21,27 @@ export function NewProfileDialog({ open, onClose, onCreate }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const handleClose = () => {
+    setName('');
+    setError(null);
+    onClose();
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
     setError(null);
     try {
       await onCreate(name.trim());
-      setName('');
-      onClose();
+      handleClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
+    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="xs">
       <DialogTitle>New Profile</DialogTitle>
       <DialogContent>
         {error && (
@@ -53,7 +59,7 @@ export function NewProfileDialog({ open, onClose, onCreate }: Props) {
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={handleClose}>Cancel</Button>
         <Button
           variant="contained"
           onClick={handleSubmit}

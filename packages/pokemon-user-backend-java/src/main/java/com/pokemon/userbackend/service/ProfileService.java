@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -90,7 +91,7 @@ public class ProfileService {
         List<Integer> uniqueIds = pokemonIds.stream().distinct().toList();
         List<Pokemon> found = pokemonRepository.findAllById(uniqueIds);
         if (found.size() != uniqueIds.size()) {
-            List<Integer> foundIds = found.stream().map(Pokemon::getId).toList();
+            Set<Integer> foundIds = found.stream().map(Pokemon::getId).collect(Collectors.toSet());
             List<Integer> missing = uniqueIds.stream().filter(id -> !foundIds.contains(id)).toList();
             throw new ResourceNotFoundException("Pokémon IDs not found: " + missing);
         }
