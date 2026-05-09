@@ -70,16 +70,7 @@ public class ProfileService {
         Profile profile = profileRepository.findById(profileId)
                 .orElseThrow(() -> new ResourceNotFoundException("Profile not found: " + profileId));
 
-        List<Integer> uniqueIds = pokemonIds.stream().distinct().toList();
-        List<Pokemon> found = pokemonRepository.findAllById(uniqueIds);
-        if (found.size() != uniqueIds.size()) {
-            List<Integer> foundIds = found.stream().map(Pokemon::getId).toList();
-            List<Integer> missing = uniqueIds.stream().filter(id -> !foundIds.contains(id)).toList();
-            throw new ResourceNotFoundException("Pokémon IDs not found: " + missing);
-        }
-
-        Map<Integer, Pokemon> pokemonById = found.stream()
-                .collect(Collectors.toMap(Pokemon::getId, p -> p));
+        Map<Integer, Pokemon> pokemonById = resolvePokemon(pokemonIds);
 
         profilePokemonRepository.deleteByProfile(profile);
 
@@ -98,5 +89,16 @@ public class ProfileService {
         entityManager.lock(profile, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
 
         return profileMapper.toDto(profile, savedTeam);
+    }
+
+    private Map<Integer, Pokemon> resolvePokemon(List<Integer> pokemonIds) {
+        List<Integer> uniqueIds = pokemonIds.stream().distinct().toList();
+        List<Pokemon> found = pokemonRepository.findAllById(uniqueIds);
+        if (found.size() != uniqueIds.size()) {
+            List<Integer> foundIds = found.stream().map(Pokemon::getId).toList();
+            List<Integer> missing = uniqueIds.stream().filter(id -> !foundIds.contains(id)).toList();
+            throw new ResourceNotFoundException("Pokémon IDs not found: " + missing);
+        }
+        return found.stream().collect(Collectors.toMap(Pokemon::getId, p -> p));
     }
 }
