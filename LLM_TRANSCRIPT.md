@@ -3225,3 +3225,90 @@ Invoked `superpowers:finishing-a-development-branch` skill. Ran unit tests: `pok
 **User:** append the llm transcript and then push and create a pull request
 
 **Claude:** Appended transcript to `LLM_TRANSCRIPT.md`. Committed and pushed branch. Created pull request.
+
+---
+
+## Session — 2026-05-09
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** is the service the right place to have the size restraint? Should this not be on the request validation before it even hits the controller?
+
+**Claude:** Let me read the service file to understand the current implementation.
+
+[Read: ProfileService.java]
+[Read: UpdateTeamRequest.java]
+[Read: ProfileController.java]
+
+Yes — you're right. The `> 6` check is a pure input constraint and belongs on the DTO with Bean Validation, not in the service.
+
+The infrastructure is already there: `UpdateTeamRequest` already uses `@NotNull`, the controller already has `@Valid`, and Spring Boot auto-wires the `MethodValidationExceptionHandler`. Moving the check to the DTO means:
+
+- **Bad input is rejected before it enters the application layer** — the service can trust its arguments
+- **The constraint is co-located with the data it describes**, which is where future readers will look
+- The service sheds a domain-unrelated guard and the custom `TeamSizeExceededException` for that case
+
+The fix is a `@Size(max = 6)` on the list in the DTO and removing the guard + exception throw from `updateTeam`:
+
+```java
+// UpdateTeamRequest.java
+public record UpdateTeamRequest(
+    @NotNull @Size(max = 6) List<Integer> pokemonIds
+) {}
+```
+
+```java
+// ProfileService.java — remove lines 66-68
+if (pokemonIds.size() > 6) {
+    throw new TeamSizeExceededException("Team cannot have more than 6 Pokémon");
+}
+```
+
+One nuance: if `TeamSizeExceededException` is mapped to a specific HTTP status in an exception handler, the validation failure will instead produce a `MethodArgumentNotValidException` (400 by default). That's actually the *correct* status for bad input — but worth verifying your error handler produces a consistent response shape for both validation errors and domain exceptions.
+
+Want me to make these changes?
+
+---
+
+**User:** yes make the changes
+
+**Claude:** [Read: GlobalExceptionHandler.java]
+[Read: TeamSizeExceededException.java]
+[Read: ProfileServiceTest.java]
+[Bash: grep team size tests in ProfileControllerTest.java]
+[Read: ProfileControllerTest.java]
+
+Making the following changes:
+1. Add `@Size(max = 6)` to `UpdateTeamRequest`
+2. Remove the guard from `ProfileService` + its import
+3. Remove the `handleTeamSize` handler from `GlobalExceptionHandler` + its import
+4. Delete `TeamSizeExceededException`
+5. Remove the service-level test for the size check
+6. Update the controller test to exercise real validation (no mock needed)
+
+[Edit: UpdateTeamRequest.java — added `@Size(max = 6, message = "Team cannot have more than 6 Pokémon")`]
+[Edit: ProfileService.java — removed TeamSizeExceededException import]
+[Edit: ProfileService.java — removed `if (pokemonIds.size() > 6)` guard block]
+[Edit: GlobalExceptionHandler.java — removed accidental blank line, then removed `handleTeamSize` handler method]
+[Bash: rm TeamSizeExceededException.java]
+[Edit: ProfileServiceTest.java — removed `updateTeam_throwsWhenMoreThanSixPokemon` test]
+[Edit: ProfileControllerTest.java — removed TeamSizeExceededException import]
+[Edit: ProfileControllerTest.java — updated `updateTeam_returns400WhenMoreThanSixPokemon` to use real @Valid validation instead of mocking a service exception]
+[Bash: nx test pokemon-user-backend-java — 25 tests, 0 failures, BUILD SUCCESS]
+
+Summary of what changed:
+- `UpdateTeamRequest.java` — added `@Size(max = 6)`, constraint now lives with the data
+- `ProfileService.java` — removed the `> 6` guard; service can now trust its input
+- `GlobalExceptionHandler.java` — removed `handleTeamSize`; existing `MethodArgumentNotValidException` handler already produces the same 400 shape
+- `TeamSizeExceededException.java` — deleted
+- `ProfileServiceTest.java` — removed the service-level size test
+- `ProfileControllerTest.java` — controller test now exercises real `@Valid` binding instead of mocking an exception
+
+---
+
+**User:** append the llm transcript with this conversation
+
+**Claude:** Appended transcript to `LLM_TRANSCRIPT.md`.

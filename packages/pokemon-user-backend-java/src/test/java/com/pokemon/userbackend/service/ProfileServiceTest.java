@@ -97,14 +97,6 @@ class ProfileServiceTest {
     }
 
     @Test
-    void updateTeam_throwsWhenMoreThanSixPokemon() {
-        var ids = List.of(1, 2, 3, 4, 5, 6, 7);
-
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> profileService.updateTeam(1, ids))
-                .isInstanceOf(com.pokemon.userbackend.exception.TeamSizeExceededException.class);
-    }
-
-    @Test
     void updateTeam_throwsWhenProfileNotFound() {
         when(profileRepository.findById(99)).thenReturn(java.util.Optional.empty());
 

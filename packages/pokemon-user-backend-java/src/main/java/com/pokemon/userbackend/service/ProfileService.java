@@ -6,7 +6,6 @@ import com.pokemon.userbackend.entity.Pokemon;
 import com.pokemon.userbackend.entity.Profile;
 import com.pokemon.userbackend.entity.ProfilePokemon;
 import com.pokemon.userbackend.exception.ResourceNotFoundException;
-import com.pokemon.userbackend.exception.TeamSizeExceededException;
 import com.pokemon.userbackend.mapper.ProfileMapper;
 import com.pokemon.userbackend.repository.PokemonRepository;
 import com.pokemon.userbackend.repository.ProfilePokemonRepository;
@@ -63,10 +62,6 @@ public class ProfileService {
 
     @Transactional
     public ProfileDto updateTeam(Integer profileId, List<Integer> pokemonIds) {
-        if (pokemonIds.size() > 6) {
-            throw new TeamSizeExceededException("Team cannot have more than 6 Pokémon");
-        }
-
         Profile profile = profileRepository.findById(profileId)
                 .orElseThrow(() -> new ResourceNotFoundException("Profile not found: " + profileId));
 

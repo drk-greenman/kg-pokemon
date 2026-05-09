@@ -22,13 +22,6 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(404, ex.getMessage()));
     }
 
-    @ExceptionHandler(TeamSizeExceededException.class)
-    public ResponseEntity<ErrorResponse> handleTeamSize(TeamSizeExceededException ex) {
-        log.warn("Team size exceeded: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(400, ex.getMessage()));
-    }
-
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ResponseEntity<ErrorResponse> handleOptimisticLock(OptimisticLockingFailureException ex) {
         log.warn("Optimistic locking failure: {}", ex.getMessage());

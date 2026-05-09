@@ -6,7 +6,6 @@ import com.pokemon.userbackend.dto.PokemonDto;
 import com.pokemon.userbackend.dto.ProfileDto;
 import com.pokemon.userbackend.dto.UpdateTeamRequest;
 import com.pokemon.userbackend.exception.ResourceNotFoundException;
-import com.pokemon.userbackend.exception.TeamSizeExceededException;
 import com.pokemon.userbackend.service.ProfileService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -119,9 +118,6 @@ class ProfileControllerTest {
 
     @Test
     void updateTeam_returns400WhenMoreThanSixPokemon() throws Exception {
-        when(profileService.updateTeam(eq(1), any()))
-                .thenThrow(new TeamSizeExceededException("Team cannot have more than 6 Pokémon"));
-
         mockMvc.perform(put("/profiles/1/team")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"pokemonIds\": [1,2,3,4,5,6,7]}"))
