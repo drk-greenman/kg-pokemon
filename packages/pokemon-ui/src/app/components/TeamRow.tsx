@@ -1,8 +1,6 @@
 import { css } from '@emotion/react';
 import { Avatar } from '@mui/material';
-
-const SPRITE_BASE =
-  'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
+import { SPRITE_BASE } from '../constants';
 
 const SLOTS = [0, 1, 2, 3, 4, 5];
 

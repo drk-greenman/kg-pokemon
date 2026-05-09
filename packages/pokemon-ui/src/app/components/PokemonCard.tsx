@@ -1,8 +1,6 @@
 import { css } from '@emotion/react';
 import type { Pokemon } from '../types';
-
-const SPRITE_BASE =
-  'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
+import { SPRITE_BASE } from '../constants';
 
 interface Props {
   pokemon: Pokemon;
