@@ -1,10 +1,8 @@
 package com.pokemon.userbackend.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pokemon.userbackend.dto.CreateProfileRequest;
 import com.pokemon.userbackend.dto.PokemonDto;
 import com.pokemon.userbackend.dto.ProfileDto;
-import com.pokemon.userbackend.dto.UpdateTeamRequest;
 import com.pokemon.userbackend.exception.ResourceNotFoundException;
 import com.pokemon.userbackend.service.ProfileService;
 import org.junit.jupiter.api.Test;
@@ -31,9 +29,6 @@ class ProfileControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @MockitoBean
     private ProfileService profileService;
