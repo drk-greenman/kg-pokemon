@@ -3402,3 +3402,46 @@ The click handler buries a conditional (`if (filled) onRemove(i)`) inside an inl
 **`packages/pokemon-ui/src/app/pages/TeamBuilderPage.tsx` lines 78–99**
 
 Both pages have an identical three-branch rendering structure with the same spinner container CSS and error alert CSS. Should be extracted into a shared `<AsyncContent loading={loading} error={error}>` wrapper component.
+
+---
+
+## Session — 2026-05-09
+
+**Tool:** Claude Code  
+**Model:** claude-sonnet-4-6
+
+### Conversation
+
+**User:** `/simplify run this on the entire code base and create a branch for any changes necessary`
+
+**Claude:** Read all source files across `pokemon-ui` and `pokemon-user-backend-java`, created branch `simplify/codebase-cleanup`, then launched three parallel review agents (code reuse, code quality, efficiency). Implemented the following fixes:
+
+**Frontend (`pokemon-ui`):**
+- Created `src/app/constants.ts` exporting `SPRITE_BASE` — was duplicated identically in `PokemonCard.tsx` and `TeamRow.tsx`
+- Created `src/app/utils/errors.ts` with `getErrorMessage(err: unknown): string` — consolidated two inconsistent patterns (`err.message ?? 'Unknown error'` and `err instanceof Error ? err.message : 'Unknown error'`) used across `ProfileListPage`, `TeamBuilderPage`, and `NewProfileDialog`
+- Updated `PokemonCard.tsx` and `TeamRow.tsx` to import `SPRITE_BASE` from constants
+- Updated both pages and `NewProfileDialog` to use `getErrorMessage()`
+- Fixed `NewProfileDialog` bug: stale error message was shown when dialog was closed after a failure and reopened — replaced a `useEffect`-based reset (which triggered a lint warning) with a `handleClose` wrapper that resets `name` and `error` on close
+- Wrapped `countMap` reduce in `PokemonGrid.tsx` with `useMemo([selectedPokemonIds])` to avoid recomputation on unrelated parent re-renders
+
+**Backend (`pokemon-user-backend-java`):**
+- Changed `foundIds` in `ProfileService.resolvePokemon` from `List<Integer>` to `Set<Integer>` to make the missing-ID filter O(n) instead of O(n·m)
+- Replaced derived `deleteByProfile` in `ProfilePokemonRepository` with a `@Modifying @Query("DELETE FROM ProfilePokemon pp WHERE pp.profile = :profile")` — eliminates Hibernate's implicit SELECT-then-N-DELETE behavior
+- Added Flyway migration `V5__add_profile_pokemon_index.sql`: `CREATE INDEX idx_profile_pokemon_profile_id ON profile_pokemon(profile_id)` — PostgreSQL does not auto-index FK referencing columns
+
+All 29 frontend unit tests passed, lint was clean (zero warnings after switching from `useEffect` to `handleClose`), and all Java backend unit tests passed.
+
+---
+
+**User:** `create a PR with the changes`
+
+**Claude:** Staged and committed all changes to branch `simplify/codebase-cleanup`, pushed to remote, and created PR #7:
+
+- Commit: `refactor: simplify and deduplicate across frontend and backend`
+- PR URL: https://github.com/drk-greenman/kg-pokemon/pull/7
+
+---
+
+**User:** `ensure the llm transcript is up to date`
+
+**Claude:** Appended this session to `LLM_TRANSCRIPT.md`.
